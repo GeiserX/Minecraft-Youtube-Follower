@@ -1,6 +1,7 @@
 # Environment variables
 .env
 *.env
+ENV_SETUP.md
 
 # Logs
 **/logs/*
