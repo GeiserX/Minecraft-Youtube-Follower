@@ -1,7 +1,12 @@
 FROM ubuntu:22.04
 
+# Set environment to avoid interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Europe/Madrid
+
 # Install dependencies
 RUN apt-get update && apt-get install -y \
+    tzdata \
     ffmpeg \
     python3 \
     python3-pip \
@@ -12,6 +17,7 @@ RUN apt-get update && apt-get install -y \
     alsa-utils \
     curl \
     wget \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -30,4 +36,5 @@ ENV DISPLAY=:99
 
 # Run startup script
 CMD ["python3", "streaming-service.py"]
+
 

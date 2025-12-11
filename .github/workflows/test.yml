@@ -86,3 +86,4 @@ jobs:
         docker build -t drumsergio/minecraft-voice-server:0.1.0 ./voice-server
         docker push drumsergio/minecraft-voice-server:0.1.0
 
+
