@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     ffmpeg \
     python3 \
     python3-pip \
+    nodejs \
+    npm \
     xvfb \
     x11vnc \
     fluxbox \
@@ -17,6 +19,8 @@ RUN apt-get update && apt-get install -y \
     alsa-utils \
     curl \
     wget \
+    chromium \
+    chromium-driver \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
     && rm -rf /var/lib/apt/lists/*
 
@@ -24,6 +28,10 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Install Node.js dependencies for Puppeteer
+COPY package.json .
+RUN npm install --only=production
 
 # Copy application code
 COPY . .
