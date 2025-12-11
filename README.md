@@ -43,7 +43,7 @@ A Docker-based system for 24/7 automated streaming of your Minecraft server with
 
 - **minecraft-spectator-bot**: Mineflayer bot that joins server in spectator mode and follows players
 - **streaming-service**: Captures bot's view and streams to YouTube/Twitch using Intel iGPU
-- **voice-server**: WebRTC-based voice chat server for player communication
+- **mumble-server**: Mumble VoIP server for player voice communication
 
 ### How It Works
 

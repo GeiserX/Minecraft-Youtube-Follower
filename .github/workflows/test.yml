@@ -5,6 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
+  workflow_dispatch:  # Allow manual triggering
 
 jobs:
   test:
@@ -44,16 +45,6 @@ jobs:
         pip install pylint
         pylint streaming/streaming-service.py || true
     
-    - name: Install voice server dependencies
-      run: |
-        cd voice-server
-        npm install --only=production
-    
-    - name: Lint voice server code
-      run: |
-        cd voice-server
-        npm install --save-dev eslint
-        npx eslint voice-server.js || true
 
   build:
     runs-on: ubuntu-latest
@@ -81,15 +72,10 @@ jobs:
       run: |
         docker build -t drumsergio/minecraft-streaming-service:0.1.0 ./streaming
     
-    - name: Build voice server image
-      run: |
-        docker build -t drumsergio/minecraft-voice-server:0.1.0 ./voice-server
-    
     - name: Push images to Docker Hub
       if: ${{ secrets.DOCKER_USERNAME }}
       run: |
         docker push drumsergio/minecraft-spectator-bot:0.1.0
         docker push drumsergio/minecraft-streaming-service:0.1.0
-        docker push drumsergio/minecraft-voice-server:0.1.0
 
 

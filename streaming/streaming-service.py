@@ -139,31 +139,31 @@ def start_stream():
         '-i', ':99.0'
     ]
     
-    # Audio sources: Mumble (via PulseAudio) and game audio
-    # Note: On Windows, we'll need to adapt this
+    # Audio sources: Mumble (via PulseAudio/ALSA) and game audio
+    # Note: On Windows, audio capture is more complex
     audio_inputs = []
     audio_filters = []
     
     if not is_windows:
-        # Linux: Use PulseAudio
-        # Mumble audio (if available)
+        # Linux: Use PulseAudio to capture Mumble output
+        # Mumble outputs to PulseAudio sink, we capture it
+        # For now, we'll use a virtual PulseAudio sink that Mumble can output to
         audio_inputs.extend([
             '-f', 'pulse',
-            '-i', 'mumble_output'
+            '-i', 'mumble_monitor'  # PulseAudio monitor source for Mumble
         ])
         audio_filters.append(f'[0:a]volume={VOICE_VOLUME_GAIN}[voice]')
         
-        # Game audio (placeholder - would need to capture from Minecraft)
-        audio_inputs.extend([
-            '-f', 'pulse',
-            '-i', 'game_audio'
-        ])
-        audio_filters.append(f'[1:a]volume={GAME_MUSIC_VOLUME_GAIN}[game]')
-        audio_filters.append('[voice][game]amix=inputs=2:duration=longest[out]')
+        # Game audio (would need to capture from Minecraft client)
+        # For now, we'll just use voice chat audio
+        # TODO: Add game audio capture when Minecraft client audio is available
+        audio_filters.append('[voice]acopy[out]')  # Just voice for now
     else:
-        # Windows: Use different audio capture method
-        # For now, just use video (audio can be added later)
+        # Windows: Audio capture is complex
+        # Would need to use Windows audio APIs or virtual audio cable
+        # For now, video only - audio can be added later
         logger.warning('Windows audio capture not fully implemented - video only for now')
+        logger.info('To add audio on Windows, consider using VB-Audio Virtual Cable or similar')
     
     # Base FFmpeg command
     ffmpeg_cmd = ['ffmpeg'] + video_input
