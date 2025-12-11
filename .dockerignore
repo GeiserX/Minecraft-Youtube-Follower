@@ -1,13 +1,150 @@
-node_modules
-npm-debug.log
+# Environment and secrets
 .env
 *.env
+.env.local
+.env.*.local
 ENV_SETUP.md
-*.log
+
+# Git
 .git
 .gitignore
+.gitattributes
+.github/
+
+# Documentation (not needed in containers)
 README.md
-.vscode
-.idea
+docs/
+*.md
+!LICENSE
+
+# Node modules (will be installed in container)
+node_modules/
+**/node_modules/
+.npm
+.eslintcache
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# Logs
+*.log
+*.log.*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+**/logs/
+
+# IDE and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+*.code-workspace
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Testing
+coverage/
+.nyc_output/
+test-results/
+*.test.js
+*.spec.js
+*.test.py
+*.spec.py
+screenshots/
+videos/
+test/
+tests/
+__tests__/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# Build artifacts
+dist/
+build/
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Docker
+docker-compose.override.yml
+docker-compose.*.yml
+!docker-compose.yml
+.docker/
+Dockerfile.dev
+docker-compose.dev.yml
+
+# Authentication cache
+**/.auth/
+**/auth-cache/
+**/*.token
+**/*.cache
+.msal-token-cache.json
+
+# Config files with secrets
+**/config/*.json
+**/config/*.yaml
+**/config/*.yml
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cert
+
+# Puppeteer cache
+.local-chromium/
+.puppeteer_cache/
+
+# FFmpeg temporary files
+*.ts
+*.m3u8
+ffmpeg-*.log
+
+# Docker volumes and data
+**/data/
+**/volumes/
+mumble-data/
+
+# Scripts (not needed in containers)
+*.ps1
+*.sh
+*.bat
+build-and-push.ps1
+test-*.ps1
+test-*.sh
 
 
