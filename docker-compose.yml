@@ -30,7 +30,7 @@ services:
       - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1920}
       - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-1080}
       - SPECTATOR_URL=http://minecraft-spectator-bot:3000
-      - MUMBLE_SERVER=mumble-server
+      - MUMBLE_SERVER=minecraft-mumble-server
       - MUMBLE_PORT=64738
       - VOICE_VOLUME_GAIN=${VOICE_VOLUME_GAIN:-2.0}
       - GAME_MUSIC_VOLUME_GAIN=${GAME_MUSIC_VOLUME_GAIN:-0.5}
