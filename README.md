@@ -30,12 +30,7 @@ A Docker-based system for 24/7 automated streaming of your Minecraft server with
    cd Minecraft-Youtube-Follower
    ```
 
-3. **Configure environment variables** in `docker-compose.yml`:
-   - `MINECRAFT_USERNAME`: Bot's Minecraft username
-   - `MINECRAFT_PASSWORD`: Bot's Minecraft password
-   - `SERVER_HOST`: Your Minecraft server IP
-   - `SERVER_PORT`: Your Minecraft server port (default: 25565)
-   - `YOUTUBE_STREAM_KEY`: Your YouTube streaming key
+3. **Configure environment variables**: See [docs/SETUP.md](docs/SETUP.md) for detailed setup instructions
 
 4. **Deploy**:
    ```bash
@@ -61,7 +56,15 @@ A Docker-based system for 24/7 automated streaming of your Minecraft server with
 
 ## Configuration
 
-See `docker-compose.yml` and individual service directories for configuration options.
+See [docs/SETUP.md](docs/SETUP.md) for detailed configuration instructions.
+
+## Documentation
+
+- [Setup Guide](docs/SETUP.md) - Installation and configuration
+- [Microsoft Authentication](docs/MICROSOFT_AUTH.md) - Microsoft account setup
+- [Voice Server](docs/VOICE_SERVER.md) - Voice chat implementation
+- [Implementation Notes](docs/IMPLEMENTATION_NOTES.md) - Technical details
+- [GitHub Setup](docs/GITHUB_SETUP.md) - Repository setup guide
 
 ## License
 
