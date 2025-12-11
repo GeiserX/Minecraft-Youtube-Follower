@@ -1,4 +1,6 @@
-# Implementation Notes
+# Development Notes
+
+> **Note**: This document is for developers and contributors. For user setup instructions, see [SETUP.md](SETUP.md).
 
 ## Video Capture Implementation
 

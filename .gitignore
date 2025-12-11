@@ -3,6 +3,10 @@
 *.env
 ENV_SETUP.md
 
+# User-specific documentation (not for public)
+docs/GITHUB_SETUP.md
+docs/SECURITY.md
+
 # Logs
 **/logs/*
 *.log
