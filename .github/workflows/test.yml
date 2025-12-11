@@ -21,7 +21,7 @@ jobs:
     - name: Install bot dependencies
       run: |
         cd bot
-        npm ci
+        npm install --only=production
     
     - name: Lint bot code
       run: |
@@ -47,7 +47,7 @@ jobs:
     - name: Install voice server dependencies
       run: |
         cd voice-server
-        npm ci
+        npm install --only=production
     
     - name: Lint voice server code
       run: |
@@ -58,6 +58,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: test
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     
     steps:
     - uses: actions/checkout@v3
@@ -66,24 +67,29 @@ jobs:
       uses: docker/setup-buildx-action@v2
     
     - name: Login to Docker Hub
+      if: ${{ secrets.DOCKER_USERNAME != '' }}
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - name: Build and push bot image
+    - name: Build bot image
       run: |
         docker build -t drumsergio/minecraft-spectator-bot:0.1.0 ./bot
-        docker push drumsergio/minecraft-spectator-bot:0.1.0
     
-    - name: Build and push streaming image
+    - name: Build streaming image
       run: |
         docker build -t drumsergio/minecraft-streaming-service:0.1.0 ./streaming
-        docker push drumsergio/minecraft-streaming-service:0.1.0
     
-    - name: Build and push voice server image
+    - name: Build voice server image
       run: |
         docker build -t drumsergio/minecraft-voice-server:0.1.0 ./voice-server
+    
+    - name: Push images to Docker Hub
+      if: ${{ secrets.DOCKER_USERNAME != '' }}
+      run: |
+        docker push drumsergio/minecraft-spectator-bot:0.1.0
+        docker push drumsergio/minecraft-streaming-service:0.1.0
         docker push drumsergio/minecraft-voice-server:0.1.0
 
 

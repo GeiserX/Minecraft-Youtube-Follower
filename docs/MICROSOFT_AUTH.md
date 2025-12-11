@@ -2,7 +2,7 @@
 
 ## Important: No Password Required!
 
-Since your Minecraft account (`your_username`) is a Microsoft account, **you do not need to provide a password**. The bot uses Microsoft OAuth device code flow.
+Since your Minecraft account is a Microsoft account, **you do not need to provide a password**. The bot uses Microsoft OAuth device code flow.
 
 ## How It Works
 
@@ -33,7 +33,7 @@ This is a one-time setup. Tokens will be cached.
 
 1. Open the URL in your browser
 2. Enter the code shown
-3. Sign in with your Microsoft account (`your_username`)
+3. Sign in with your Microsoft account
 4. Grant permissions if prompted
 
 ### Step 3: Tokens Are Cached
@@ -45,7 +45,7 @@ After successful authentication, tokens are saved to `/app/config/.auth` (or `./
 In your `.env` file, you only need:
 
 ```env
-MINECRAFT_USERNAME=your_username
+MINECRAFT_USERNAME=your_minecraft_username
 # NO PASSWORD NEEDED!
 ```
 
