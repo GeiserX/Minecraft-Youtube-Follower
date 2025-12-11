@@ -73,7 +73,7 @@ docker-compose logs -f minecraft-spectator-bot
 docker-compose logs -f minecraft-streaming-service
 
 # Voice server logs
-docker-compose logs -f minecraft-voice-server
+docker-compose logs -f minecraft-mumble-server
 ```
 
 ### 6. Access Voice Chat
