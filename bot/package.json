@@ -1,0 +1,19 @@
+{
+  "name": "minecraft-spectator-bot",
+  "version": "1.0.0",
+  "description": "Mineflayer bot for following players in spectator mode",
+  "main": "spectator-bot.js",
+  "scripts": {
+    "start": "node spectator-bot.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.20.1",
+    "prismarine-viewer": "^1.25.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "",
+  "license": "GPL-3.0"
+}
+

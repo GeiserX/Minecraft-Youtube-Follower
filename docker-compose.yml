@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  minecraft-spectator-bot:
+    build: ./bot
+    container_name: minecraft-spectator-bot
+    environment:
+      - MINECRAFT_USERNAME=${MINECRAFT_USERNAME}
+      - MINECRAFT_PASSWORD=${MINECRAFT_PASSWORD}
+      - SERVER_HOST=${SERVER_HOST:-your_server_ip}
+      - SERVER_PORT=${SERVER_PORT:-25565}
+      - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
+    volumes:
+      - ./bot/config:/app/config
+      - ./bot/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+  streaming-service:
+    build: ./streaming
+    container_name: minecraft-streaming-service
+    devices:
+      - /dev/dri:/dev/dri  # Intel iGPU passthrough
+    environment:
+      - YOUTUBE_STREAM_KEY=${YOUTUBE_STREAM_KEY}
+      - TWITCH_STREAM_KEY=${TWITCH_STREAM_KEY}
+      - STREAM_PLATFORM=${STREAM_PLATFORM:-youtube}
+      - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1920}
+      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-1080}
+      - SPECTATOR_URL=http://minecraft-spectator-bot:3000
+      - VOICE_SERVER_URL=http://voice-server:8080
+      - VOICE_VOLUME_GAIN=${VOICE_VOLUME_GAIN:-2.0}
+      - GAME_MUSIC_VOLUME_GAIN=${GAME_MUSIC_VOLUME_GAIN:-0.5}
+    volumes:
+      - ./streaming/config:/app/config
+      - ./streaming/logs:/app/logs
+    depends_on:
+      - minecraft-spectator-bot
+      - voice-server
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+  voice-server:
+    build: ./voice-server
+    container_name: minecraft-voice-server
+    ports:
+      - "8080:8080"
+      - "8081:8081/udp"  # WebRTC UDP
+      - "8082:8082/udp"  # WebRTC UDP
+    environment:
+      - VOICE_SERVER_PORT=8080
+      - MAX_PARTICIPANTS=${MAX_PARTICIPANTS:-20}
+      - AUDIO_SAMPLE_RATE=${AUDIO_SAMPLE_RATE:-48000}
+    volumes:
+      - ./voice-server/config:/app/config
+      - ./voice-server/logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+networks:
+  minecraft-streaming:
+    driver: bridge
+

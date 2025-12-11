@@ -1,0 +1,41 @@
+# Environment variables
+.env
+*.env
+
+# Logs
+**/logs/*
+*.log
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Config files with secrets
+**/config/*.json
+**/config/*.yaml
+!**/config/*.example.*
+
+# Docker
+.docker/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
