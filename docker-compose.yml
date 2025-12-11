@@ -2,14 +2,14 @@ version: '3.8'
 
 services:
   minecraft-spectator-bot:
-    build: ./bot
+    image: drumsergio/minecraft-spectator-bot:0.1.0
     container_name: minecraft-spectator-bot
     environment:
       - MINECRAFT_USERNAME=${MINECRAFT_USERNAME}
-      - MINECRAFT_PASSWORD=${MINECRAFT_PASSWORD}
       - SERVER_HOST=${SERVER_HOST:-your_server_ip}
       - SERVER_PORT=${SERVER_PORT:-25565}
       - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
+      - AUTH_CACHE_DIR=/app/config/.auth
     volumes:
       - ./bot/config:/app/config
       - ./bot/logs:/app/logs
@@ -18,10 +18,11 @@ services:
       - minecraft-streaming
 
   streaming-service:
-    build: ./streaming
+    image: drumsergio/minecraft-streaming-service:0.1.0
     container_name: minecraft-streaming-service
-    devices:
-      - /dev/dri:/dev/dri  # Intel iGPU passthrough
+    # Intel iGPU passthrough (Linux only, comment out on Windows)
+    # devices:
+    #   - /dev/dri:/dev/dri
     environment:
       - YOUTUBE_STREAM_KEY=${YOUTUBE_STREAM_KEY}
       - TWITCH_STREAM_KEY=${TWITCH_STREAM_KEY}
@@ -43,7 +44,7 @@ services:
       - minecraft-streaming
 
   voice-server:
-    build: ./voice-server
+    image: drumsergio/minecraft-voice-server:0.1.0
     container_name: minecraft-voice-server
     ports:
       - "8080:8080"

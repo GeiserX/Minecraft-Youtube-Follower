@@ -129,7 +129,8 @@ def start_stream():
         STREAM_URL
     ]
     
-    # If Intel iGPU is available, use hardware encoding
+    # If Intel iGPU is available, use hardware encoding (Linux only)
+    # On Windows, this path won't exist, so we'll use software encoding
     if os.path.exists('/dev/dri/renderD128'):
         logger.info('Intel iGPU detected, using hardware encoding')
         ffmpeg_cmd = [

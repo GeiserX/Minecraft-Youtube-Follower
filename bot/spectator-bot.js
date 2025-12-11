@@ -1,32 +1,20 @@
 const mineflayer = require('mineflayer');
-// Note: For actual video streaming, you'll need to implement a capture method
-// This could be done via browser automation (Puppeteer) or direct screen capture
-// of a headless browser viewing the bot's perspective
+const { Authflow } = require('prismarine-auth');
 
 // Configuration from environment variables
 const config = {
   host: process.env.SERVER_HOST || 'localhost',
   port: parseInt(process.env.SERVER_PORT || '25565'),
   username: process.env.MINECRAFT_USERNAME,
-  password: process.env.MINECRAFT_PASSWORD,
   version: '1.21.4', // Latest Paper version
-  spectatorPort: parseInt(process.env.SPECTATOR_PORT || '3000')
+  spectatorPort: parseInt(process.env.SPECTATOR_PORT || '3000'),
+  cacheDir: process.env.AUTH_CACHE_DIR || '/app/config/.auth'
 };
 
-if (!config.username || !config.password) {
-  console.error('Error: MINECRAFT_USERNAME and MINECRAFT_PASSWORD must be set');
+if (!config.username) {
+  console.error('Error: MINECRAFT_USERNAME must be set');
   process.exit(1);
 }
-
-// Create bot
-const bot = mineflayer.createBot({
-  host: config.host,
-  port: config.port,
-  username: config.username,
-  password: config.password,
-  version: config.version,
-  auth: 'microsoft'
-});
 
 // Player tracking state
 let currentTarget = null;
@@ -43,40 +31,103 @@ const showcaseLocations = [
 
 let showcaseIndex = 0;
 
-// Note: Video capture will be handled by the streaming service
-// This bot provides the spectator view that needs to be captured
-// Options: browser automation, direct Minecraft client connection, or API-based capture
+// Microsoft account authentication
+// Note: For Microsoft accounts, you need to authenticate once interactively
+// The auth flow will cache tokens for future use
+async function createBot() {
+  const flow = new Authflow(config.username, config.cacheDir, {
+    flow: 'msal',
+    deviceCodeCallback: (info) => {
+      console.log('='.repeat(60));
+      console.log('MICROSOFT ACCOUNT AUTHENTICATION REQUIRED');
+      console.log('='.repeat(60));
+      console.log(`Go to: ${info.verification_uri}`);
+      console.log(`Enter code: ${info.user_code}`);
+      console.log('='.repeat(60));
+      console.log('This is a one-time setup. Tokens will be cached.');
+      console.log('='.repeat(60));
+    }
+  });
 
-bot.on('spawn', () => {
-  console.log('Bot spawned, switching to spectator mode...');
-  
-  // Wait a moment for bot to fully spawn
-  setTimeout(() => {
-    bot.chat('/gamemode spectator');
-    console.log('Bot is now in spectator mode');
-    console.log(`Bot position: ${bot.entity.position}`);
+  try {
+    const { token, entitlements, profile } = await flow.getMinecraftJavaToken({
+      fetchEntitlements: true,
+      fetchProfile: true
+    });
+
+    console.log(`Authenticated as: ${profile.name}`);
+
+    // Create bot with Microsoft authentication
+    const bot = mineflayer.createBot({
+      host: config.host,
+      port: config.port,
+      username: config.username,
+      version: config.version,
+      auth: 'microsoft',
+      session: {
+        accessToken: token,
+        clientToken: flow.clientId,
+        selectedProfile: {
+          id: profile.id,
+          name: profile.name
+        }
+      }
+    });
+
+    return bot;
+  } catch (error) {
+    console.error('Authentication error:', error);
+    console.error('Please ensure you complete the device code flow');
+    process.exit(1);
+  }
+}
+
+// Initialize bot and set up event handlers
+let bot;
+createBot().then(createdBot => {
+  bot = createdBot;
+  setupBot();
+}).catch(error => {
+  console.error('Failed to create bot:', error);
+  process.exit(1);
+});
+
+function setupBot() {
+  // Note: Video capture will be handled by the streaming service
+  // This bot provides the spectator view that needs to be captured
+  // Options: browser automation, direct Minecraft client connection, or API-based capture
+
+  bot.on('spawn', () => {
+    console.log('Bot spawned, switching to spectator mode...');
     
-    // The streaming service will need to capture this bot's view
-    // This can be done via:
-    // 1. Browser automation (Puppeteer) connecting to a web-based viewer
-    // 2. Direct Minecraft client connection in spectator mode
-    // 3. API endpoint that provides bot's current view data
-    
-    startPlayerTracking();
-  }, 2000);
-});
+    // Wait a moment for bot to fully spawn
+    setTimeout(() => {
+      bot.chat('/gamemode spectator');
+      console.log('Bot is now in spectator mode');
+      console.log(`Bot position: ${bot.entity.position}`);
+      
+      // The streaming service will need to capture this bot's view
+      // This can be done via:
+      // 1. Browser automation (Puppeteer) connecting to a web-based viewer
+      // 2. Direct Minecraft client connection in spectator mode
+      // 3. API endpoint that provides bot's current view data
+      
+      startPlayerTracking();
+    }, 2000);
+  });
 
-bot.on('error', (err) => {
-  console.error('Bot error:', err);
-});
+  bot.on('error', (err) => {
+    console.error('Bot error:', err);
+  });
 
-bot.on('kicked', (reason) => {
-  console.error('Bot kicked:', reason);
-});
+  bot.on('kicked', (reason) => {
+    console.error('Bot kicked:', reason);
+  });
 
-bot.on('end', () => {
-  console.log('Bot disconnected');
-});
+  bot.on('end', () => {
+    console.log('Bot disconnected');
+  });
+}
 
 function startPlayerTracking() {
   setInterval(() => {
@@ -229,19 +280,12 @@ function showcaseBases() {
 // Handle graceful shutdown
 process.on('SIGINT', () => {
   console.log('Shutting down...');
-  if (viewer) {
-    viewer.close();
-  }
-  bot.quit();
+  if (bot) bot.quit();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
   console.log('Shutting down...');
-  if (viewer) {
-    viewer.close();
-  }
-  bot.quit();
+  if (bot) bot.quit();
   process.exit(0);
 });
-
