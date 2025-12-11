@@ -1,5 +1,6 @@
 const mineflayer = require('mineflayer');
 const { Authflow } = require('prismarine-auth');
+const { mineflayer: viewerPlugin } = require('prismarine-viewer');
 
 // Configuration from environment variables
 const config = {
@@ -92,11 +93,9 @@ createBot().then(createdBot => {
   process.exit(1);
 });
 
-function setupBot() {
-  // Note: Video capture will be handled by the streaming service
-  // This bot provides the spectator view that needs to be captured
-  // Options: browser automation, direct Minecraft client connection, or API-based capture
+let viewer = null;
 
+function setupBot() {
   bot.on('spawn', () => {
     console.log('Bot spawned, switching to spectator mode...');
     
@@ -106,11 +105,19 @@ function setupBot() {
       console.log('Bot is now in spectator mode');
       console.log(`Bot position: ${bot.entity.position}`);
       
-      // The streaming service will need to capture this bot's view
-      // This can be done via:
-      // 1. Browser automation (Puppeteer) connecting to a web-based viewer
-      // 2. Direct Minecraft client connection in spectator mode
-      // 3. API endpoint that provides bot's current view data
+      // Create viewer for streaming service to capture
+      try {
+        viewerPlugin(bot, {
+          port: config.spectatorPort,
+          viewDistance: 6,
+          firstPerson: false
+        });
+        console.log(`Prismarine viewer initialized on port ${config.spectatorPort}`);
+        console.log(`Viewer accessible at: http://localhost:${config.spectatorPort}`);
+      } catch (error) {
+        console.error('Failed to create viewer:', error);
+        console.log('Note: prismarine-viewer may need different setup');
+      }
       
       startPlayerTracking();
     }, 2000);

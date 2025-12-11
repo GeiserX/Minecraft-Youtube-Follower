@@ -1,0 +1,14 @@
+{
+  "name": "minecraft-streaming-service",
+  "version": "1.0.0",
+  "description": "Streaming service with Puppeteer viewer capture",
+  "main": "capture-viewer.js",
+  "dependencies": {
+    "puppeteer-core": "^21.5.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "GPL-3.0"
+}
+

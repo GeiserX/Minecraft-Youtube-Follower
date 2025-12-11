@@ -30,7 +30,8 @@ services:
       - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1920}
       - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-1080}
       - SPECTATOR_URL=http://minecraft-spectator-bot:3000
-      - VOICE_SERVER_URL=http://voice-server:8080
+      - MUMBLE_SERVER=mumble-server
+      - MUMBLE_PORT=64738
       - VOICE_VOLUME_GAIN=${VOICE_VOLUME_GAIN:-2.0}
       - GAME_MUSIC_VOLUME_GAIN=${GAME_MUSIC_VOLUME_GAIN:-0.5}
     volumes:
@@ -38,25 +39,21 @@ services:
       - ./streaming/logs:/app/logs
     depends_on:
       - minecraft-spectator-bot
-      - voice-server
+      - mumble-server
     restart: unless-stopped
     networks:
       - minecraft-streaming
 
-  voice-server:
-    image: drumsergio/minecraft-voice-server:0.1.0
-    container_name: minecraft-voice-server
+  mumble-server:
+    image: mumblevoip/mumble-server:latest
+    container_name: minecraft-mumble-server
     ports:
-      - "8080:8080"
-      - "8081:8081/udp"  # WebRTC UDP
-      - "8082:8082/udp"  # WebRTC UDP
+      - "${MUMBLE_PORT:-64738}:64738/tcp"
+      - "${MUMBLE_PORT:-64738}:64738/udp"
     environment:
-      - VOICE_SERVER_PORT=8080
-      - MAX_PARTICIPANTS=${MAX_PARTICIPANTS:-20}
-      - AUDIO_SAMPLE_RATE=${AUDIO_SAMPLE_RATE:-48000}
+      - MUMBLE_SUPERUSER_PASSWORD=${MUMBLE_SUPERUSER_PASSWORD:-changeme}
     volumes:
-      - ./voice-server/config:/app/config
-      - ./voice-server/logs:/app/logs
+      - ./mumble/config:/data
     restart: unless-stopped
     networks:
       - minecraft-streaming
