@@ -58,21 +58,18 @@ jobs:
       uses: docker/setup-buildx-action@v2
     
     - name: Login to Docker Hub
-      if: ${{ secrets.DOCKER_USERNAME }}
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
     
     - name: Build and push bot image
-      if: ${{ secrets.DOCKER_USERNAME }}
       run: |
         DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
         docker build -t ${DOCKER_USERNAME}/minecraft-spectator-bot:0.1.0 ./bot
         docker push ${DOCKER_USERNAME}/minecraft-spectator-bot:0.1.0
     
     - name: Build and push streaming image
-      if: ${{ secrets.DOCKER_USERNAME }}
       run: |
         DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
         docker build -t ${DOCKER_USERNAME}/minecraft-streaming-service:0.1.0 ./streaming
