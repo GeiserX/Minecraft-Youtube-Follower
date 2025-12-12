@@ -78,5 +78,3 @@ jobs:
         DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
         docker build -t ${DOCKER_USERNAME}/minecraft-streaming-service:0.1.0 ./streaming
         docker push ${DOCKER_USERNAME}/minecraft-streaming-service:0.1.0
-
-
