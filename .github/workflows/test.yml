@@ -43,7 +43,8 @@ jobs:
     - name: Lint Python code
       run: |
         pip install pylint
-        pylint streaming/streaming-service.py || true
+        cd streaming
+        pylint streaming-service.py || true
     
 
   build:
@@ -64,18 +65,18 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
     
-    - name: Build bot image
-      run: |
-        docker build -t drumsergio/minecraft-spectator-bot:0.1.0 ./bot
-    
-    - name: Build streaming image
-      run: |
-        docker build -t drumsergio/minecraft-streaming-service:0.1.0 ./streaming
-    
-    - name: Push images to Docker Hub
+    - name: Build and push bot image
       if: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        docker push drumsergio/minecraft-spectator-bot:0.1.0
-        docker push drumsergio/minecraft-streaming-service:0.1.0
+        DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+        docker build -t ${DOCKER_USERNAME}/minecraft-spectator-bot:0.1.0 ./bot
+        docker push ${DOCKER_USERNAME}/minecraft-spectator-bot:0.1.0
+    
+    - name: Build and push streaming image
+      if: ${{ secrets.DOCKER_USERNAME }}
+      run: |
+        DOCKER_USERNAME="${{ secrets.DOCKER_USERNAME }}"
+        docker build -t ${DOCKER_USERNAME}/minecraft-streaming-service:0.1.0 ./streaming
+        docker push ${DOCKER_USERNAME}/minecraft-streaming-service:0.1.0
 
 
