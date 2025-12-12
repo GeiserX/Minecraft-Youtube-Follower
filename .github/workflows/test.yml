@@ -5,7 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   test:
@@ -45,7 +45,6 @@ jobs:
         pip install pylint
         cd streaming
         pylint streaming-service.py || true
-    
 
   build:
     runs-on: ubuntu-latest
