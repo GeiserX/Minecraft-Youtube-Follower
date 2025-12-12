@@ -147,3 +147,5 @@ ffmpeg-*.log
 # pnpm-lock.yaml
 
 
+mumble/config/
+mumble/config/*

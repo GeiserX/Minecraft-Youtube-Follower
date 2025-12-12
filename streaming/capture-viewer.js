@@ -16,7 +16,7 @@ async function captureViewer() {
   
   // Launch browser
   const browser = await puppeteer.launch({
-    executablePath: '/usr/bin/chromium',
+    executablePath: '/usr/bin/chromium-browser',
     headless: true,
     args: [
       '--no-sandbox',

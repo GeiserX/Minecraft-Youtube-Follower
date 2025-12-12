@@ -9,7 +9,8 @@
   "dependencies": {
     "mineflayer": "^4.20.1",
     "prismarine-auth": "^2.1.0",
-    "prismarine-viewer": "^1.25.0"
+    "prismarine-viewer": "^1.25.0",
+    "canvas": "^2.11.2"
   },
   "engines": {
     "node": ">=18.0.0"

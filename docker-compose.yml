@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   minecraft-spectator-bot:
     image: drumsergio/minecraft-spectator-bot:0.1.0
@@ -10,6 +8,7 @@ services:
       - SERVER_PORT=${SERVER_PORT:-25565}
       - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
       - AUTH_CACHE_DIR=/app/config/.auth
+      - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
     volumes:
       - ./bot/config:/app/config
       - ./bot/logs:/app/logs

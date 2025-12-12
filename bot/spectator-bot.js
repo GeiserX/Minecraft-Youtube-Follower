@@ -9,7 +9,8 @@ const config = {
   username: process.env.MINECRAFT_USERNAME,
   version: '1.21.4', // Latest Paper version
   spectatorPort: parseInt(process.env.SPECTATOR_PORT || '3000'),
-  cacheDir: process.env.AUTH_CACHE_DIR || '/app/config/.auth'
+  cacheDir: process.env.AUTH_CACHE_DIR || '/app/config/.auth',
+  azureClientId: process.env.AZURE_CLIENT_ID // Optional: Azure app client ID
 };
 
 if (!config.username) {
@@ -36,8 +37,30 @@ let showcaseIndex = 0;
 // Note: For Microsoft accounts, you need to authenticate once interactively
 // The auth flow will cache tokens for future use
 async function createBot() {
-  const flow = new Authflow(config.username, config.cacheDir, {
+  // Configure authentication flow
+  // Microsoft accounts require OAuth (no username/password possible)
+  // You need an Azure app client ID - see docs/SETUP.md for complete setup guide
+  if (!config.azureClientId) {
+    console.error('='.repeat(60));
+    console.error('ERROR: AZURE_CLIENT_ID is required in .env file');
+    console.error('='.repeat(60));
+    console.error('');
+    console.error('IMPORTANT: Microsoft accounts require Azure app registration.');
+    console.error('');
+    console.error('Quick steps:');
+    console.error('1. Get free Azure account: https://azure.microsoft.com/free/');
+    console.error('2. Create app registration in Azure Portal');
+    console.error('3. Copy Client ID to .env: AZURE_CLIENT_ID=your-id');
+    console.error('4. Request Mojang API approval (required for new apps)');
+    console.error('');
+    console.error('See docs/SETUP.md for complete step-by-step instructions');
+    console.error('='.repeat(60));
+    process.exit(1);
+  }
+  
+  const authConfig = {
     flow: 'msal',
+    authTitle: config.azureClientId,
     deviceCodeCallback: (info) => {
       console.log('='.repeat(60));
       console.log('MICROSOFT ACCOUNT AUTHENTICATION REQUIRED');
@@ -45,10 +68,15 @@ async function createBot() {
       console.log(`Go to: ${info.verification_uri}`);
       console.log(`Enter code: ${info.user_code}`);
       console.log('='.repeat(60));
-      console.log('This is a one-time setup. Tokens will be cached.');
+      console.log('This is a ONE-TIME setup. After this, it will remember you forever!');
+      console.log('='.repeat(60));
+      console.log('');
+      console.log(`✓ Using Azure Client ID: ${config.azureClientId}`);
       console.log('='.repeat(60));
     }
-  });
+  };
+
+  const flow = new Authflow(config.username, config.cacheDir, authConfig);
 
   try {
     const { token, entitlements, profile } = await flow.getMinecraftJavaToken({

@@ -1,23 +1,73 @@
-# Setup Guide
+# Complete Setup Guide
 
 ## Prerequisites
 
 1. **Minecraft Account**: Purchase a separate Minecraft Java Edition account for the bot (~$30)
-2. **Unraid System**: With Docker support and Intel iGPU
-3. **Minecraft Server**: Paper server (latest version) with GeyserMC for Bedrock support
+2. **Docker**: Docker and Docker Compose installed
+3. **Minecraft Server**: Paper server (latest version) recommended
 4. **Streaming Key**: YouTube or Twitch streaming key
+5. **Free Azure Subscription**: Required for Microsoft account authentication
 
-## Installation Steps
-
-### 1. Clone the Repository
+## Step 1: Clone Repository
 
 ```bash
-cd /mnt/user/appdata/
 git clone https://github.com/yourusername/Minecraft-Youtube-Follower.git
 cd Minecraft-Youtube-Follower
 ```
 
-### 2. Configure Environment Variables
+## Step 2: Azure App Registration
+
+**⚠️ REQUIRED**: Microsoft accounts require OAuth authentication via Azure app registration.
+
+### 2.1: Get Azure Subscription (Free)
+
+Personal Microsoft accounts need a free Azure subscription:
+
+1. Go to: https://azure.microsoft.com/free/
+2. Click **"Start free"**
+3. Sign up with your Microsoft account
+4. Verify phone number (credit card required for verification only - no charges)
+
+### 2.2: Create App Registration
+
+1. Go to: https://portal.azure.com
+2. Search **"Azure Active Directory"** → Click on it
+3. Click **"App registrations"** in the left menu
+4. Click **"New registration"**
+5. Fill in:
+   - **Name**: `MinecraftBot` (or any name)
+   - **Supported account types**: **"Accounts in any organizational directory and personal Microsoft accounts (e.g. Skype, Xbox)"**
+   - Leave redirect URI empty
+6. Click **"Register"**
+7. Copy the **"Application (client) ID"** (a long GUID)
+
+### 2.3: Configure App
+
+**Enable Public Client Flows**:
+1. Click **"Authentication"** in the left menu
+2. Scroll to **"Advanced settings"**
+3. Set **"Allow public client flows"** to **"Yes"**
+4. Click **"Save"**
+
+**Note**: Xbox Live API permission is not available in standard Azure registrations and may not be required.
+
+## Step 3: Request Mojang API Approval
+
+**⚠️ CRITICAL**: Mojang requires all new third-party applications to be manually approved before accessing Minecraft Java Edition APIs.
+
+1. Go to: https://help.minecraft.net/
+2. Search for "Java Edition Game Service API Review" or "API integration request"
+3. Find and fill out the application form
+4. Provide:
+   - Application name: MinecraftBot
+   - Purpose: Automated spectator bot for streaming
+   - Azure Client ID: `your-client-id-here`
+   - Description: Automated bot that follows players in spectator mode for 24/7 YouTube/Twitch streaming
+5. Submit and wait for Mojang approval (may take days/weeks)
+
+See [MOJANG_API_APPROVAL.md](MOJANG_API_APPROVAL.md) for detailed instructions.
+
+## Step 4: Configure Environment Variables
 
 Copy the example environment file:
 
@@ -30,20 +80,33 @@ Edit `.env` with your settings:
 ```env
 # Minecraft Bot Configuration
 MINECRAFT_USERNAME=your_bot_username
-MINECRAFT_PASSWORD=your_bot_password
 SERVER_HOST=your_server_ip
 SERVER_PORT=25565
+SPECTATOR_PORT=3000
+
+# Azure Authentication
+AZURE_CLIENT_ID=your-azure-client-id-here
 
 # Streaming Configuration
-YOUTUBE_STREAM_KEY=your_youtube_stream_key
 STREAM_PLATFORM=youtube
+YOUTUBE_STREAM_KEY=your_youtube_stream_key
+# OR for Twitch:
+# TWITCH_STREAM_KEY=your_twitch_stream_key
+
+# Display Settings
+DISPLAY_WIDTH=1920
+DISPLAY_HEIGHT=1080
 
 # Audio Mixing
 VOICE_VOLUME_GAIN=2.0
 GAME_MUSIC_VOLUME_GAIN=0.5
+
+# Mumble Server
+MUMBLE_PORT=64738
+MUMBLE_SUPERUSER_PASSWORD=changeme
 ```
 
-### 3. Configure Showcase Locations
+## Step 5: Configure Showcase Locations (Optional)
 
 Edit `bot/spectator-bot.js` and add coordinates of interesting builds:
 
@@ -56,41 +119,36 @@ const showcaseLocations = [
 ];
 ```
 
-### 4. Build and Start Services
+## Step 6: Build and Start Services
 
 ```bash
 docker-compose build
 docker-compose up -d
 ```
 
-### 5. Check Logs
+## Step 7: Complete Device Code Authentication
 
-```bash
-# Bot logs
-docker-compose logs -f minecraft-spectator-bot
+**After Mojang approval**, complete one-time authentication:
 
-# Streaming logs
-docker-compose logs -f minecraft-streaming-service
+1. Check logs: `docker-compose logs -f minecraft-spectator-bot`
+2. The bot will display a device code like: `To sign in, use a web browser to open the page https://www.microsoft.com/link and enter the code ABC123XYZ`
+3. Go to: https://www.microsoft.com/link
+4. Enter the code shown
+5. Sign in with your Microsoft account
+6. Grant permissions if prompted
 
-# Voice server logs
-docker-compose logs -f minecraft-mumble-server
-```
+**Note**: This is a **one-time setup**. After authentication, tokens are cached and the bot will connect automatically on future restarts.
 
-### 6. Access Voice Chat
+## Getting Streaming Keys
 
-Open your browser and navigate to:
-```
-http://your-server-ip:8080
-```
-
-## Getting YouTube Streaming Key
+### YouTube Streaming Key
 
 1. Go to [YouTube Studio](https://studio.youtube.com)
 2. Click "Go Live" → "Stream"
 3. Copy your "Stream Key"
 4. Add it to your `.env` file
 
-## Getting Twitch Streaming Key
+### Twitch Streaming Key
 
 1. Go to [Twitch Creator Dashboard](https://dashboard.twitch.tv)
 2. Settings → Stream
@@ -99,51 +157,51 @@ http://your-server-ip:8080
 
 ## Troubleshooting
 
+### Authentication Issues
+
+**"Invalid app registration"**:
+- Most likely: Missing Mojang API approval (see Step 3)
+- Or: Azure app not configured correctly (check Step 2.3)
+
+**"Account does not exist in tenant"**:
+- Azure app registered with wrong account type
+- Solution: Re-register with "Accounts in any organizational directory and personal Microsoft accounts"
+
+**"invalid_grant"**:
+- Public client flows not enabled
+- Solution: Enable "Allow public client flows" in Azure app Authentication settings
+
 ### Bot Can't Connect
 
-- Verify Minecraft credentials in `.env`
-- Check server IP and port
-- Ensure server allows the bot's IP address
-- Check if server requires whitelist
+- Verify `SERVER_HOST` and `SERVER_PORT` in `.env`
+- Check server allows the bot's IP address
+- Ensure server doesn't require whitelist
+- Check bot logs: `docker-compose logs minecraft-spectator-bot`
 
 ### No Video Stream
 
 - Verify streaming key is correct
-- Check Intel iGPU passthrough: `ls -la /dev/dri/`
-- Review streaming service logs
-- Ensure spectator bot is running and in spectator mode
+- Check streaming service logs: `docker-compose logs minecraft-streaming-service`
+- Ensure spectator bot viewer is accessible at http://localhost:3000
+- Check Intel iGPU passthrough (Linux): `ls -la /dev/dri/`
 
 ### Voice Chat Not Working
 
-- Check voice server logs
-- Verify port 8080 is accessible
-- Test WebRTC connection in browser console
-- Check microphone permissions in browser
+- Check Mumble server logs: `docker-compose logs minecraft-mumble-server`
+- Verify port 64738 is accessible
+- Test with Mumble client: connect to `localhost:64738`
 
 ### High CPU Usage
 
-- Reduce stream quality in `streaming-service.py`
-- Lower video bitrate
-- Reduce number of showcase locations
-
-## Performance Optimization
-
-### For Lower-End Systems
-
-Edit `docker-compose.yml`:
-
-```yaml
-streaming-service:
-  environment:
-    - DISPLAY_WIDTH=1280
-    - DISPLAY_HEIGHT=720
-```
-
-Edit `streaming/streaming-service.py` to reduce bitrate:
-
-```python
-'-b:v', '2000k',  # Reduced from 3000k
-```
+- Reduce stream quality in `docker-compose.yml`:
+  ```yaml
+  DISPLAY_WIDTH=1280
+  DISPLAY_HEIGHT=720
+  ```
+- Lower video bitrate in `streaming/streaming-service.py`:
+  ```python
+  '-b:v', '2000k',  # Reduced from 3000k
+  ```
 
 ## Maintenance
 
@@ -167,11 +225,22 @@ docker-compose restart
 docker-compose down
 ```
 
+### View Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f minecraft-spectator-bot
+docker-compose logs -f minecraft-streaming-service
+docker-compose logs -f minecraft-mumble-server
+```
+
 ## Security Notes
 
-- Never commit `.env` file to git
-- Use strong passwords for Minecraft account
+- Never commit `.env` file to git (already in .gitignore)
 - Keep streaming keys secret
-- Consider firewall rules for voice server port
-
-
+- Use strong password for Mumble superuser
+- Tokens are stored in `./bot/config/.auth` (never commit this)
+- Consider firewall rules for exposed ports
