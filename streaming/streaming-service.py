@@ -213,7 +213,8 @@ def build_overlay_filter():
     except:
         pass
     
-    return f"drawtext=textfile='{TARGET_FILE}':reload=1:fontsize={OVERLAY_FONT_SIZE}:fontcolor=white:borderw=2:bordercolor=black:box=1:boxcolor=black@0.5:boxborderw=5:{pos}"
+    # Bubble-style overlay with rounded appearance (larger box padding, more visible)
+    return f"drawtext=textfile='{TARGET_FILE}':reload=1:fontsize={OVERLAY_FONT_SIZE}:fontcolor=white:borderw=3:bordercolor=black:box=1:boxcolor=0x000000@0.7:boxborderw=12:{pos}"
 
 def start_stream():
     global ffmpeg_process

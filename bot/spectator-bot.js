@@ -2,9 +2,8 @@ const mineflayer = require('mineflayer');
 const { mineflayer: viewerPlugin } = require('prismarine-viewer');
 const Vec3 = require('vec3');
 const fs = require('fs');
-const path = require('path');
 
-// Configuration from environment variables
+// Configuration
 const config = {
   host: process.env.SERVER_HOST || 'localhost',
   port: parseInt(process.env.SERVER_PORT || '25565'),
@@ -21,34 +20,30 @@ if (!config.username) {
   process.exit(1);
 }
 
-// Track authentication state globally
 let isAuthenticating = false;
 
 // ============================================================================
-// CONFIGURATION: Camera & Following
+// CAMERA CONFIGURATION
 // ============================================================================
 const CHECK_INTERVAL = parseInt(process.env.CHECK_INTERVAL_MS || '5000', 10);
 const SWITCH_INTERVAL = parseInt(process.env.SWITCH_INTERVAL_MS || '30000', 10);
 
-// Camera mode: 'third-person' (shows player) or 'spectate' (first-person POV)
+// Camera mode: 'third-person' (stable behind player) or 'spectate' (first-person)
 const CAMERA_MODE = (process.env.CAMERA_MODE || 'third-person').toLowerCase();
 
-// How often to update camera position (ms) - lower = smoother
-const CAMERA_UPDATE_INTERVAL = parseInt(process.env.CAMERA_UPDATE_INTERVAL_MS || '500', 10);
+// Camera update interval - HIGHER = smoother/less jerky (default 2000ms = every 2 seconds)
+const CAMERA_UPDATE_INTERVAL = parseInt(process.env.CAMERA_UPDATE_INTERVAL_MS || '2000', 10);
 
-// Camera positioning
-const BASE_CAMERA_DISTANCE = parseFloat(process.env.CAMERA_DISTANCE || '6');
-const BASE_CAMERA_HEIGHT = parseFloat(process.env.CAMERA_HEIGHT || '2');
-const MIN_CAMERA_DISTANCE = 3;
-const MAX_CAMERA_DISTANCE = 12;
-const MIN_CAMERA_HEIGHT = 1;
-const MAX_CAMERA_HEIGHT = 4;
-const CAMERA_ANGLE_OFFSET = parseFloat(process.env.CAMERA_ANGLE_OFFSET || '0');
+// Camera positioning - FIXED direction, doesn't follow player's facing
+const CAMERA_DISTANCE = parseFloat(process.env.CAMERA_DISTANCE || '8');
+const CAMERA_HEIGHT = parseFloat(process.env.CAMERA_HEIGHT || '4');
 
-// Viewer settings
+// Fixed camera angle (compass direction): 0=south, 90=west, 180=north, 270=east
+// This keeps the camera stable regardless of where the player looks
+const CAMERA_FIXED_ANGLE = parseFloat(process.env.CAMERA_FIXED_ANGLE || '0');
+
 const VIEWER_VIEW_DISTANCE = parseInt(process.env.VIEWER_VIEW_DISTANCE || '6', 10);
 
-// Showcase locations when no players online
 const showcaseLocations = [
   { x: 0, y: 64, z: 0, description: 'Spawn' },
 ];
@@ -58,7 +53,6 @@ const showcaseLocations = [
 // ============================================================================
 let currentTarget = null;
 let currentTargetName = '';
-let lastActivity = {};
 let trackingInterval = null;
 let cameraUpdateInterval = null;
 let showcaseActive = false;
@@ -67,10 +61,12 @@ let lastCommandTime = 0;
 let lastPlayerListSignature = '';
 let playerRotationIndex = 0;
 
-// Create bot
+// Smooth camera position (interpolated)
+let smoothCameraPos = null;
+
 async function createBot() {
   console.log(`Connecting to server: ${config.host}:${config.port}`);
-  console.log(`Camera mode: ${CAMERA_MODE}`);
+  console.log(`Camera mode: ${CAMERA_MODE}, update every ${CAMERA_UPDATE_INTERVAL}ms`);
   
   if (!config.azureClientId) {
     console.error('ERROR: AZURE_CLIENT_ID is required');
@@ -79,12 +75,8 @@ async function createBot() {
 
   try {
     const cacheFiles = fs.readdirSync(config.cacheDir).filter(f => f.endsWith('.json'));
-    if (cacheFiles.length > 0) {
-      console.log(`Found ${cacheFiles.length} cached auth file(s)`);
-    }
-  } catch (err) {
-    console.log('Auth cache not ready:', err.message);
-  }
+    if (cacheFiles.length > 0) console.log(`Found ${cacheFiles.length} cached auth file(s)`);
+  } catch (err) {}
 
   const bot = mineflayer.createBot({
     host: config.host,
@@ -95,22 +87,15 @@ async function createBot() {
     profilesFolder: config.cacheDir,
     authTitle: config.azureClientId,
     flow: 'msal',
-    msalConfig: {
-      auth: {
-        clientId: config.azureClientId,
-        authority: config.msalAuthority
-      }
-    },
+    msalConfig: { auth: { clientId: config.azureClientId, authority: config.msalAuthority } },
     onMsaCode: (info) => {
       isAuthenticating = true;
-      const url = info?.verificationUri || info?.verification_uri;
-      const code = info?.userCode || info?.user_code;
       console.log('');
       console.log('='.repeat(60));
       console.log('🔐 MICROSOFT AUTHENTICATION REQUIRED');
       console.log('='.repeat(60));
-      console.log(`Go to: ${url}`);
-      console.log(`Enter code: ${code}`);
+      console.log(`Go to: ${info?.verificationUri || info?.verification_uri}`);
+      console.log(`Enter code: ${info?.userCode || info?.user_code}`);
       console.log('='.repeat(60));
     }
   });
@@ -121,27 +106,22 @@ async function createBot() {
       console.log(`✓ Authenticated as: ${bot.username}`);
       resolve(bot);
     });
-    
-    bot.on('error', (err) => {
-      if (isAuthenticating) return;
-      reject(err);
-    });
+    bot.on('error', (err) => { if (!isAuthenticating) reject(err); });
   });
 }
 
 let bot;
 let consecutiveFailures = 0;
-const MAX_CONSECUTIVE_FAILURES = 3;
 
 createBot().then(createdBot => {
-    bot = createdBot;
-    consecutiveFailures = 0;
-    setupBot();
-  }).catch(error => {
-    if (isAuthenticating) return;
-    console.error('Failed to create bot:', error);
-    process.exit(1);
-  });
+  bot = createdBot;
+  consecutiveFailures = 0;
+  setupBot();
+}).catch(error => {
+  if (isAuthenticating) return;
+  console.error('Failed to create bot:', error);
+  process.exit(1);
+});
 
 function setupBot() {
   bot.on('spawn', () => {
@@ -152,11 +132,7 @@ function setupBot() {
       console.log(`Bot position: ${bot.entity.position}`);
       
       try {
-        viewerPlugin(bot, {
-          port: config.spectatorPort,
-          viewDistance: VIEWER_VIEW_DISTANCE,
-          firstPerson: true
-        });
+        viewerPlugin(bot, { port: config.spectatorPort, viewDistance: VIEWER_VIEW_DISTANCE, firstPerson: true });
         console.log(`Viewer at http://localhost:${config.spectatorPort}`);
       } catch (error) {
         console.error('Failed to create viewer:', error);
@@ -169,25 +145,17 @@ function setupBot() {
   bot.on('error', (err) => {
     console.error('Bot error:', err);
     consecutiveFailures++;
-    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      bot.quit();
-      process.exit(1);
-    }
+    if (consecutiveFailures >= 3) { bot.quit(); process.exit(1); }
   });
 
-  bot.on('kicked', (reason) => {
-    console.error('Bot kicked:', reason);
-  });
+  bot.on('kicked', (reason) => console.error('Bot kicked:', reason));
 
   bot.on('end', () => {
     console.log('Bot disconnected');
     if (trackingInterval) clearInterval(trackingInterval);
     if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
-    
     if (isAuthenticating) return;
-    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
-      process.exit(1);
-    }
+    if (consecutiveFailures >= 3) process.exit(1);
     
     setTimeout(() => {
       createBot().then(createdBot => {
@@ -212,9 +180,7 @@ function startPlayerTracking() {
   let lastSwitchTime = Date.now();
   
   trackingInterval = setInterval(() => {
-    const players = Object.values(bot.players).filter(p =>
-      p && p.username && p.username !== bot.username
-    );
+    const players = Object.values(bot.players).filter(p => p?.username && p.username !== bot.username);
 
     const names = players.map(p => p.username).sort();
     const signature = names.join(',');
@@ -228,6 +194,7 @@ function startPlayerTracking() {
         console.log('No players - showcase mode');
         currentTarget = null;
         currentTargetName = '';
+        writeCurrentTarget('');
         if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
       }
       if (!showcaseActive) showcaseBases();
@@ -242,15 +209,12 @@ function startPlayerTracking() {
     const now = Date.now();
     const currentOnline = currentTarget && players.some(p => p.username === currentTarget.username);
     
-    let shouldSwitch = !currentTarget || !currentOnline || 
-      (now - lastSwitchTime >= SWITCH_INTERVAL && players.length > 1);
-    
-    if (shouldSwitch) {
+    if (!currentTarget || !currentOnline || (now - lastSwitchTime >= SWITCH_INTERVAL && players.length > 1)) {
       playerRotationIndex = (playerRotationIndex + 1) % players.length;
       const newTarget = players[playerRotationIndex];
       
       if (!currentTarget || currentTarget.username !== newTarget.username) {
-        console.log(`Following: ${newTarget.username}`);
+        console.log(`Now following: ${newTarget.username}`);
       }
       
       currentTarget = newTarget;
@@ -265,7 +229,8 @@ function startPlayerTracking() {
 
 function writeCurrentTarget(username) {
   try {
-    fs.writeFileSync('/app/config/current_target.txt', username);
+    const text = username ? `Now following: ${username}` : '';
+    fs.writeFileSync('/app/config/current_target.txt', text);
   } catch (e) {}
 }
 
@@ -278,7 +243,8 @@ function startContinuousFollow(player) {
     return;
   }
   
-  // Third-person camera
+  // Third-person camera - STABLE, doesn't follow player's facing direction
+  // Camera stays at a fixed compass angle relative to the player
   const updateCamera = () => {
     if (!currentTarget || currentTarget.username !== player.username) {
       if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
@@ -286,9 +252,10 @@ function startContinuousFollow(player) {
     }
     
     const targetPlayer = bot.players[player.username];
-    if (!targetPlayer || !targetPlayer.entity) {
+    if (!targetPlayer?.entity) {
+      // Player not in render distance - teleport to them
       const now = Date.now();
-      if (now - lastCommandTime > 2000) {
+      if (now - lastCommandTime > 3000) {
         bot.chat(`/tp @s ${player.username}`);
         lastCommandTime = now;
       }
@@ -296,20 +263,19 @@ function startContinuousFollow(player) {
     }
     
     const playerPos = targetPlayer.entity.position;
-    const playerYaw = targetPlayer.entity.yaw || 0;
     
-    const { distance, height } = calculateAdaptiveCamera(targetPlayer);
+    // FIXED camera angle (doesn't change with player facing)
+    const angleRad = (CAMERA_FIXED_ANGLE * Math.PI) / 180;
     
-    const angleOffset = (CAMERA_ANGLE_OFFSET * Math.PI) / 180;
-    const cameraYaw = playerYaw + Math.PI + angleOffset;
+    // Calculate camera position at fixed angle behind player
+    const cameraX = playerPos.x - Math.sin(angleRad) * CAMERA_DISTANCE;
+    const cameraZ = playerPos.z + Math.cos(angleRad) * CAMERA_DISTANCE;
+    const cameraY = playerPos.y + CAMERA_HEIGHT;
     
-    const cameraX = playerPos.x - Math.sin(cameraYaw) * distance;
-    const cameraZ = playerPos.z + Math.cos(cameraYaw) * distance;
-    const cameraY = playerPos.y + 1.62 + height;
-    
-    const targetEyeY = playerPos.y + 1.62;
+    // Calculate look direction towards player's chest (not head for more stability)
+    const targetY = playerPos.y + 1.0; // Chest height
     const dx = playerPos.x - cameraX;
-    const dy = targetEyeY - cameraY;
+    const dy = targetY - cameraY;
     const dz = playerPos.z - cameraZ;
     const horizontalDist = Math.sqrt(dx * dx + dz * dz);
     
@@ -319,10 +285,11 @@ function startContinuousFollow(player) {
     const yawDeg = (lookYaw * 180) / Math.PI;
     const pitchDeg = (lookPitch * 180) / Math.PI;
     
+    // Teleport camera
     const cmd = `/tp @s ${cameraX.toFixed(2)} ${cameraY.toFixed(2)} ${cameraZ.toFixed(2)} ${yawDeg.toFixed(1)} ${pitchDeg.toFixed(1)}`;
     
     const now = Date.now();
-    if (now - lastCommandTime > 100) {
+    if (now - lastCommandTime > 500) { // Rate limit
       bot.chat(cmd);
       lastCommandTime = now;
     }
@@ -330,95 +297,24 @@ function startContinuousFollow(player) {
   
   updateCamera();
   cameraUpdateInterval = setInterval(updateCamera, CAMERA_UPDATE_INTERVAL);
-  console.log(`Following ${player.username} (third-person)`);
-}
-
-function calculateAdaptiveCamera(player) {
-  if (!player.entity) {
-    return { distance: BASE_CAMERA_DISTANCE, height: BASE_CAMERA_HEIGHT };
-  }
-  
-  const pos = player.entity.position;
-  const playerYaw = player.entity.yaw || 0;
-  const behindYaw = playerYaw + Math.PI;
-  
-  let minClearDistance = MAX_CAMERA_DISTANCE;
-  let ceilingHeight = MAX_CAMERA_HEIGHT;
-  
-  // Check behind player for obstacles
-  for (let dist = 1; dist <= MAX_CAMERA_DISTANCE; dist += 1) {
-    const checkX = pos.x - Math.sin(behindYaw) * dist;
-    const checkZ = pos.z + Math.cos(behindYaw) * dist;
-    
-    for (let h = 0; h <= 4; h += 0.5) {
-      try {
-        const block = bot.blockAt(new Vec3(checkX, pos.y + 1.62 + h, checkZ));
-        if (block && block.boundingBox !== 'empty') {
-          if (dist < minClearDistance) minClearDistance = dist - 0.5;
-          if (h < ceilingHeight && h > 0) ceilingHeight = h - 0.5;
-        }
-      } catch (e) {}
-    }
-  }
-  
-  // Check ceiling
-  for (let h = 1; h <= 5; h += 0.5) {
-    try {
-      const block = bot.blockAt(pos.offset(0, 1.62 + h, 0));
-      if (block && block.boundingBox !== 'empty') {
-        ceilingHeight = Math.min(ceilingHeight, h - 0.5);
-        break;
-      }
-    } catch (e) {}
-  }
-  
-  // Count nearby blocks to detect indoor
-  let solidCount = 0;
-  for (let dx = -4; dx <= 4; dx += 2) {
-    for (let dy = -1; dy <= 3; dy += 2) {
-      for (let dz = -4; dz <= 4; dz += 2) {
-        try {
-          const block = bot.blockAt(pos.offset(dx, dy, dz));
-          if (block && block.boundingBox !== 'empty') solidCount++;
-        } catch (e) {}
-      }
-    }
-  }
-  
-  const enclosureRatio = solidCount / 125;
-  
-  let distance = BASE_CAMERA_DISTANCE;
-  distance = Math.min(distance, minClearDistance - 0.5);
-  distance = distance * (1 - enclosureRatio * 0.5);
-  distance = Math.max(MIN_CAMERA_DISTANCE, Math.min(MAX_CAMERA_DISTANCE, distance));
-  
-  let height = BASE_CAMERA_HEIGHT;
-  height = Math.min(height, ceilingHeight - 0.5);
-  height = Math.max(MIN_CAMERA_HEIGHT, Math.min(MAX_CAMERA_HEIGHT, height));
-  
-  return { distance, height };
+  console.log(`Following ${player.username} (third-person, stable camera)`);
 }
 
 function showcaseBases() {
   if (showcaseActive) return;
   showcaseActive = true;
-  currentTargetName = 'Showcase';
   writeCurrentTarget('Showcase');
   
-  try {
-    if (showcaseLocations.length === 0) return;
-    
-    const location = showcaseLocations[showcaseIndex];
-    console.log(`Showcase: ${location.description}`);
-    
-    if (bot?.entity) {
-      bot.chat(`/tp @s ${location.x} ${location.y} ${location.z}`);
-    }
-    
-    showcaseIndex = (showcaseIndex + 1) % showcaseLocations.length;
-  } catch (error) {
-    showcaseActive = false;
+  if (showcaseLocations.length === 0) return;
+  
+  const location = showcaseLocations[showcaseIndex];
+  console.log(`Showcase: ${location.description}`);
+  
+  if (bot?.entity) {
+    bot.chat(`/tp @s ${location.x} ${location.y} ${location.z}`);
   }
+  
+  showcaseIndex = (showcaseIndex + 1) % showcaseLocations.length;
 }
 
 process.on('SIGINT', () => {
