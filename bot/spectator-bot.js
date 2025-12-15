@@ -29,8 +29,8 @@ const CHECK_INTERVAL = parseInt(process.env.CHECK_INTERVAL_MS || '5000', 10);
 const SWITCH_INTERVAL = parseInt(process.env.SWITCH_INTERVAL_MS || '30000', 10);
 const CAMERA_MODE = (process.env.CAMERA_MODE || 'third-person').toLowerCase();
 const CAMERA_UPDATE_INTERVAL = parseInt(process.env.CAMERA_UPDATE_INTERVAL_MS || '2000', 10);
-const CAMERA_DISTANCE = parseFloat(process.env.CAMERA_DISTANCE || '8');
-const CAMERA_HEIGHT = parseFloat(process.env.CAMERA_HEIGHT || '4');
+const CAMERA_DISTANCE = parseFloat(process.env.CAMERA_DISTANCE || '5');  // Blocks behind player
+const CAMERA_HEIGHT = parseFloat(process.env.CAMERA_HEIGHT || '1.5');    // Blocks above player's eyes
 const CAMERA_FIXED_ANGLE = parseFloat(process.env.CAMERA_FIXED_ANGLE || '0');
 const VIEWER_VIEW_DISTANCE = parseInt(process.env.VIEWER_VIEW_DISTANCE || '6', 10);
 
@@ -353,7 +353,7 @@ function startContinuousFollow(player) {
   }
   
   // Third-person: use server-side execute command for stable positioning
-  // This positions the camera using SERVER coordinates, not Mineflayer physics
+  // Position camera behind player at fixed height, always facing them
   const updateCamera = () => {
     if (!currentTarget || currentTarget.username !== player.username) {
       if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
@@ -363,13 +363,18 @@ function startContinuousFollow(player) {
     
     const now = Date.now();
     
-    // Rate limit commands to avoid spam (but fast enough to prevent visible falling)
+    // Rate limit commands to avoid spam
     if (now - lastCommandTime < 400) return;
     
-    // Use /execute to position camera relative to player (server-side, no physics)
-    // ^X = left/right, ^Y = up/down, ^Z = forward/backward (relative to player facing)
-    // Using absolute offset instead to get consistent behind-the-player view
-    const cmd = `/execute as ${player.username} at @s positioned ^ ^${CAMERA_HEIGHT} ^-${CAMERA_DISTANCE} run tp ${bot.username} ~ ~ ~ facing entity ${player.username} eyes`;
+    // Camera positioning using execute command (all server-side, no falling):
+    // - "as <player> at @s" = run from player's position
+    // - "anchored eyes" = anchor to eye level
+    // - "rotated ~ 0" = use player's yaw but FORCE pitch to 0 (horizontal) - prevents camera going crazy when player looks up/down
+    // - "positioned ^ ^1 ^-5" = 0 left/right, 1 block up from eyes, 5 blocks behind
+    // - "facing entity <player> eyes" = look at their eyes
+    const height = Math.min(CAMERA_HEIGHT, 2);  // Cap height to prevent too-high views
+    const distance = Math.min(CAMERA_DISTANCE, 6);  // Cap distance
+    const cmd = `/execute as ${player.username} at @s anchored eyes rotated ~ 0 positioned ^ ^${height} ^-${distance} run tp ${bot.username} ~ ~ ~ facing entity ${player.username} eyes`;
     
     bot.chat(cmd);
     lastCommandTime = now;
