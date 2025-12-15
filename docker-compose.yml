@@ -1,6 +1,8 @@
 services:
   minecraft-spectator-bot:
-    image: drumsergio/minecraft-spectator-bot:0.1.0
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
     container_name: minecraft-spectator-bot
     environment:
       - MINECRAFT_USERNAME=${MINECRAFT_USERNAME}
@@ -9,15 +11,31 @@ services:
       - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
       - AUTH_CACHE_DIR=/app/config/.auth
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      # Following behavior:
+      # - USE_SPECTATE=true: smooth first-person view (default, best for streams)
+      # - USE_SPECTATE=false: third-person camera with adaptive distance
+      - USE_SPECTATE=${USE_SPECTATE:-true}
+      - CHECK_INTERVAL_MS=${CHECK_INTERVAL_MS:-5000}
+      - SWITCH_INTERVAL_MS=${SWITCH_INTERVAL_MS:-30000}
+      - FOLLOW_DISTANCE=${FOLLOW_DISTANCE:-8}
+      - FOLLOW_HEIGHT=${FOLLOW_HEIGHT:-3}
+      - VIEWER_VIEW_DISTANCE=${VIEWER_VIEW_DISTANCE:-6}
+      # Auth troubleshooting: if you get tenant/consent errors on login, try:
+      # MSAL_AUTHORITY=https://login.microsoftonline.com/common
+      - MSAL_AUTHORITY=${MSAL_AUTHORITY:-https://login.microsoftonline.com/consumers}
     volumes:
-      - ./bot/config:/app/config
+      - minecraft-bot-auth:/app/config/.auth  # Persistent volume for auth cache (survives upgrades)
       - ./bot/logs:/app/logs
+      - ./bot/spectator-bot.js:/app/spectator-bot.js:ro  # Mount code for live updates (no rebuild needed)
+      - ./bot/package.json:/app/package.json:ro  # Mount package.json in case dependencies change
     restart: unless-stopped
     networks:
       - minecraft-streaming
 
   streaming-service:
-    image: drumsergio/minecraft-streaming-service:0.1.0
+    build:
+      context: ./streaming
+      dockerfile: Dockerfile
     container_name: minecraft-streaming-service
     # Intel iGPU passthrough (Linux only, comment out on Windows)
     # devices:
@@ -26,8 +44,28 @@ services:
       - YOUTUBE_STREAM_KEY=${YOUTUBE_STREAM_KEY}
       - TWITCH_STREAM_KEY=${TWITCH_STREAM_KEY}
       - STREAM_PLATFORM=${STREAM_PLATFORM:-youtube}
-      - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1920}
-      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-1080}
+      # youtube ingest method:
+      # - rtmp: standard YouTube ingest (rtmp://a.rtmp.youtube.com/live2/<key>)
+      # - hls:  YouTube HLS ingest (https://a.upload.youtube.com/http_upload_hls?cid=<cid>...)
+      - YOUTUBE_INGEST_METHOD=${YOUTUBE_INGEST_METHOD:-rtmp}
+      # Optional override for YouTube RTMP ingest base URL
+      - YOUTUBE_INGEST_URL=${YOUTUBE_INGEST_URL:-rtmp://a.rtmp.youtube.com/live2}
+      # Optional override for YouTube HLS upload base
+      - YOUTUBE_HLS_UPLOAD_BASE=${YOUTUBE_HLS_UPLOAD_BASE:-https://a.upload.youtube.com/http_upload_hls}
+      # Optional: paste the FULL YouTube Studio HLS ingest URL here (starts with https://)
+      - YOUTUBE_HLS_URL=${YOUTUBE_HLS_URL:-}
+      # HLS upload HTTP method (YouTube supports POST/PUT; PUT tends to work better)
+      - YOUTUBE_HLS_HTTP_METHOD=${YOUTUBE_HLS_HTTP_METHOD:-PUT}
+      # Optional: reduce load / speed up YouTube "Preparando emisión"
+      - YOUTUBE_OUTPUT_WIDTH=${YOUTUBE_OUTPUT_WIDTH:-1280}
+      - YOUTUBE_OUTPUT_HEIGHT=${YOUTUBE_OUTPUT_HEIGHT:-720}
+      # Performance settings (lower = smoother streaming)
+      - YOUTUBE_VIDEO_BITRATE=${YOUTUBE_VIDEO_BITRATE:-1500k}
+      - YOUTUBE_MAXRATE=${YOUTUBE_MAXRATE:-1500k}
+      - YOUTUBE_BUFSIZE=${YOUTUBE_BUFSIZE:-3000k}
+      - YOUTUBE_FRAMERATE=${YOUTUBE_FRAMERATE:-24}
+      - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1280}
+      - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-720}
       - SPECTATOR_URL=http://minecraft-spectator-bot:3000
       - MUMBLE_SERVER=minecraft-mumble-server
       - MUMBLE_PORT=64738
@@ -36,6 +74,8 @@ services:
     volumes:
       - ./streaming/config:/app/config
       - ./streaming/logs:/app/logs
+      - ./streaming/capture-viewer.js:/app/capture-viewer.js:ro  # Live updates
+      - ./streaming/streaming-service.py:/app/streaming-service.py:ro  # Live updates
     depends_on:
       - minecraft-spectator-bot
       - mumble-server
@@ -56,6 +96,11 @@ services:
     restart: unless-stopped
     networks:
       - minecraft-streaming
+
+volumes:
+  minecraft-bot-auth:
+    driver: local
+    # This volume persists authentication tokens across container updates
 
 networks:
   minecraft-streaming:

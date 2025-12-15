@@ -65,6 +65,8 @@ Personal Microsoft accounts need a free Azure subscription:
    - Description: Automated bot that follows players in spectator mode for 24/7 YouTube/Twitch streaming
 5. Submit and wait for Mojang approval (may take days/weeks)
 
+**✅ Once approved**: Your application will be added to Mojang's allow list and authentication will work.
+
 See [MOJANG_API_APPROVAL.md](MOJANG_API_APPROVAL.md) for detailed instructions.
 
 ## Step 4: Configure Environment Variables

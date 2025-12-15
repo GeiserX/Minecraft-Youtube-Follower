@@ -7,13 +7,13 @@
     "start": "node spectator-bot.js"
   },
   "dependencies": {
-    "mineflayer": "^4.20.1",
-    "prismarine-auth": "^2.1.0",
-    "prismarine-viewer": "^1.25.0",
+    "mineflayer": "latest",
+    "prismarine-auth": "latest",
+    "prismarine-viewer": "latest",
     "canvas": "^2.11.2"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   },
   "author": "",
   "license": "GPL-3.0"
