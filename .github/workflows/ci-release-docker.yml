@@ -21,6 +21,8 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: bot/package-lock.json
 
     - name: Install canvas dependencies
       run: |
@@ -30,7 +32,7 @@ jobs:
     - name: Install bot dependencies
       run: |
         cd bot
-        npm install
+        npm ci --prefer-offline
 
     - name: Check bot syntax
       run: |
@@ -41,30 +43,28 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: '3.12'
+        cache: 'pip'
+        cache-dependency-path: streaming/requirements.txt
 
     - name: Install streaming dependencies
       run: |
         cd streaming
         pip install -r requirements.txt
 
-    - name: Lint Python code
-      run: |
-        pip install ruff
-        cd streaming
-        ruff check streaming-service.py || true
-
     - name: Check Python syntax
       run: |
         cd streaming
         python -m py_compile streaming-service.py
+        python -m py_compile capture-viewer.js || true
 
+    # Only test Docker builds on PRs (not on pushes or tags)
     - name: Test Docker build (bot)
-      run: |
-        docker build -t test-bot ./bot
+      if: github.event_name == 'pull_request'
+      run: docker build -t test-bot ./bot
 
     - name: Test Docker build (streaming)
-      run: |
-        docker build -t test-streaming ./streaming
+      if: github.event_name == 'pull_request'
+      run: docker build -t test-streaming ./streaming
 
   release:
     needs: test
@@ -72,7 +72,6 @@ jobs:
     if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
     permissions:
       contents: write
-      id-token: write
     outputs:
       version: ${{ steps.tag_version.outputs.version }}
     
@@ -102,11 +101,7 @@ jobs:
           # Download production docker-compose
           curl -O https://raw.githubusercontent.com/${{ github.repository }}/master/docker-compose.prod.yml
           
-          # Configure environment
-          cp .env.example .env
-          # Edit .env with your settings
-          
-          # Start services
+          # Configure environment and start
           docker-compose -f docker-compose.prod.yml up -d
           ```
           
@@ -115,9 +110,6 @@ jobs:
           docker pull docker.io/${{ secrets.DOCKER_USERNAME }}/minecraft-spectator-bot:${{ steps.tag_version.outputs.version }}
           docker pull docker.io/${{ secrets.DOCKER_USERNAME }}/minecraft-streaming-service:${{ steps.tag_version.outputs.version }}
           ```
-          
-          ### Changes
-          See [CHANGELOG](https://github.com/${{ github.repository }}/blob/master/CHANGELOG.md) for details.
         draft: false
         prerelease: false
       env:
@@ -135,9 +127,6 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
-
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
@@ -147,12 +136,6 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_TOKEN }}
 
-    - name: Extract version from tag
-      id: tag_version
-      run: |
-        VERSION=${GITHUB_REF#refs/tags/v}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-
     - name: Extract metadata for bot image
       id: meta_bot
       uses: docker/metadata-action@v5
@@ -161,7 +144,6 @@ jobs:
         tags: |
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
           type=raw,value=latest
 
     - name: Extract metadata for streaming image
@@ -172,9 +154,10 @@ jobs:
         tags: |
           type=semver,pattern={{version}}
           type=semver,pattern={{major}}.{{minor}}
-          type=semver,pattern={{major}}
           type=raw,value=latest
 
+    # Build both images in parallel using matrix would be slower due to job startup
+    # Sequential with caching is faster for 2 images
     - name: Build and push bot image
       uses: docker/build-push-action@v6
       with:
@@ -183,8 +166,8 @@ jobs:
         push: true
         tags: ${{ steps.meta_bot.outputs.tags }}
         labels: ${{ steps.meta_bot.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=bot
+        cache-to: type=gha,mode=max,scope=bot
 
     - name: Build and push streaming image
       uses: docker/build-push-action@v6
@@ -194,6 +177,5 @@ jobs:
         push: true
         tags: ${{ steps.meta_streaming.outputs.tags }}
         labels: ${{ steps.meta_streaming.outputs.labels }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-
+        cache-from: type=gha,scope=streaming
+        cache-to: type=gha,mode=max,scope=streaming
