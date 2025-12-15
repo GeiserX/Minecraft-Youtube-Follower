@@ -1,62 +1,125 @@
 #!/bin/bash
-# Download Minecraft music files for streaming
-# Minecraft music files are available from various sources
+# Download royalty-free relaxing music for streaming
+# Safe to use on YouTube/Twitch streams
+#
+# Usage: ./download-music.sh
+#
+# Options:
+#   --youtube   Download from YouTube (requires yt-dlp)
+#   --freepd    Download from FreePD.com (public domain)
+#   --all       Download from all sources
 
 set -e
 
-MUSIC_DIR="/app/music"
+MUSIC_DIR="$(dirname "$0")/music"
 mkdir -p "$MUSIC_DIR"
+cd "$MUSIC_DIR"
 
-echo "Downloading Minecraft music files..."
+echo "==========================================="
+echo "Royalty-Free Music Downloader"
+echo "==========================================="
+echo "Output: $MUSIC_DIR"
+echo ""
 
-# Minecraft music files (ogg format) - these are the official game music files
-# Note: These URLs may need to be updated. You can also manually download from:
-# - Minecraft Wiki: https://minecraft.wiki/w/Music
-# - Or extract from Minecraft game files
+download_freepd() {
+    echo "Downloading from FreePD.com (Public Domain)..."
+    echo "These tracks are 100% free to use commercially."
+    echo ""
+    
+    # FreePD.com - Public Domain music (no attribution required)
+    # Relaxing/Ambient category
+    TRACKS=(
+        "https://freepd.com/music/Serenity.mp3"
+        "https://freepd.com/music/Floating%20Cities.mp3"
+        "https://freepd.com/music/Dreams.mp3"
+        "https://freepd.com/music/Morning%20Mood.mp3"
+        "https://freepd.com/music/Peaceful.mp3"
+        "https://freepd.com/music/Relaxing.mp3"
+        "https://freepd.com/music/Ethereal.mp3"
+        "https://freepd.com/music/Ambient%20Piano.mp3"
+        "https://freepd.com/music/Calm.mp3"
+        "https://freepd.com/music/Meditation.mp3"
+    )
+    
+    for url in "${TRACKS[@]}"; do
+        filename=$(basename "$url" | sed 's/%20/ /g')
+        if [ ! -f "$filename" ]; then
+            echo "  Downloading: $filename"
+            curl -sL -o "$filename" "$url" 2>/dev/null || echo "    (failed)"
+        else
+            echo "  Skipping (exists): $filename"
+        fi
+    done
+}
 
-# List of Minecraft music tracks (you can add more)
-MUSIC_FILES=(
-    "https://github.com/MinecraftWiki/music/raw/main/music/menu/menu1.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/menu/menu2.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/menu/menu3.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/menu/menu4.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/calm1.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/calm2.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/calm3.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/hal1.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/hal2.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/hal3.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/hal4.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/nuance1.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/nuance2.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/piano1.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/piano2.ogg"
-    "https://github.com/MinecraftWiki/music/raw/main/music/game/piano3.ogg"
-)
-
-# Try to download files, but don't fail if URLs are broken
-for url in "${MUSIC_FILES[@]}"; do
-    filename=$(basename "$url")
-    if [ ! -f "$MUSIC_DIR/$filename" ]; then
-        echo "Downloading $filename..."
-        curl -L -f -s "$url" -o "$MUSIC_DIR/$filename" || echo "Failed to download $filename (URL may be outdated)"
-    else
-        echo "$filename already exists, skipping..."
+download_youtube() {
+    echo "Downloading ambient music via yt-dlp..."
+    echo ""
+    
+    if ! command -v yt-dlp &> /dev/null; then
+        echo "yt-dlp not found. Installing..."
+        pip3 install yt-dlp 2>/dev/null || brew install yt-dlp 2>/dev/null || {
+            echo "Please install yt-dlp: pip install yt-dlp"
+            return 1
+        }
     fi
-done
+    
+    # Search for ambient/relaxing music (will get various royalty-free tracks)
+    yt-dlp \
+        --extract-audio \
+        --audio-format mp3 \
+        --audio-quality 192K \
+        --no-playlist \
+        --output "%(title)s.%(ext)s" \
+        --no-overwrites \
+        --max-downloads 15 \
+        --match-filter "duration < 600" \
+        --quiet \
+        --progress \
+        "ytsearch15:no copyright ambient relaxing music for streaming" 2>/dev/null || true
+}
 
-# If no files were downloaded, create a placeholder
-if [ -z "$(ls -A $MUSIC_DIR/*.ogg 2>/dev/null)" ]; then
-    echo "WARNING: No music files downloaded. You can:"
-    echo "1. Manually download Minecraft music files (.ogg format) to $MUSIC_DIR"
-    echo "2. Extract from Minecraft game files:"
-    echo "   - Windows: %appdata%/.minecraft/assets/objects/"
-    echo "   - Linux: ~/.minecraft/assets/objects/"
-    echo "   - macOS: ~/Library/Application Support/minecraft/assets/objects/"
-    echo "3. Use any .ogg audio files as background music"
-    exit 1
+# Parse arguments
+MODE="${1:-freepd}"
+
+case "$MODE" in
+    --youtube|-y)
+        download_youtube
+        ;;
+    --freepd|-f)
+        download_freepd
+        ;;
+    --all|-a)
+        download_freepd
+        echo ""
+        download_youtube
+        ;;
+    *)
+        download_freepd
+        ;;
+esac
+
+echo ""
+echo "==========================================="
+echo "Download complete!"
+echo ""
+
+# Count files
+mp3_count=$(ls -1 *.mp3 2>/dev/null | wc -l | tr -d ' ')
+ogg_count=$(ls -1 *.ogg 2>/dev/null | wc -l | tr -d ' ')
+total=$((mp3_count + ogg_count))
+
+echo "Music files: $total"
+if [ "$total" -gt 0 ]; then
+    echo ""
+    ls -lh *.mp3 *.ogg 2>/dev/null | head -20
 fi
 
-echo "Music files ready in $MUSIC_DIR"
-ls -lh "$MUSIC_DIR"/*.ogg 2>/dev/null | head -5
-
+echo ""
+echo "==========================================="
+echo "To use in your stream:"
+echo "  ENABLE_MUSIC=true"
+echo "  MUSIC_VOLUME=0.15"
+echo ""
+echo "Volume is set low (15%) so voice chat remains clear."
+echo "==========================================="
