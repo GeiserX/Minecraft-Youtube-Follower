@@ -49,6 +49,9 @@ DISPLAY_WIDTH = int(os.getenv('DISPLAY_WIDTH', '1280'))  # Match output for less
 DISPLAY_HEIGHT = int(os.getenv('DISPLAY_HEIGHT', '720'))
 VOICE_VOLUME_GAIN = float(os.getenv('VOICE_VOLUME_GAIN', '2.0'))
 GAME_MUSIC_VOLUME_GAIN = float(os.getenv('GAME_MUSIC_VOLUME_GAIN', '0.5'))
+MUSIC_DIR = os.getenv('MUSIC_DIR', '/app/music')
+ENABLE_MUSIC = os.getenv('ENABLE_MUSIC', 'true').lower() == 'true'
+MUSIC_VOLUME = float(os.getenv('MUSIC_VOLUME', '0.3'))  # Volume level (0.0-1.0)
 
 # Determine stream URL based on platform
 if STREAM_PLATFORM == 'youtube':
@@ -207,6 +210,44 @@ def start_puppeteer_capture():
         logger.error(f'Failed to start Puppeteer: {e}')
         return False
 
+def get_music_files():
+    """Find available music files for streaming"""
+    if not ENABLE_MUSIC:
+        return None
+    
+    music_path = Path(MUSIC_DIR)
+    if not music_path.exists():
+        logger.warning(f'Music directory not found: {MUSIC_DIR}')
+        return None
+    
+    # Find all .ogg and .mp3 files
+    music_files = list(music_path.glob('*.ogg')) + list(music_path.glob('*.mp3'))
+    
+    if not music_files:
+        logger.warning(f'No music files found in {MUSIC_DIR}')
+        return None
+    
+    # Sort for consistent ordering
+    music_files.sort()
+    logger.info(f'Found {len(music_files)} music file(s) in {MUSIC_DIR}')
+    return music_files
+
+def create_music_playlist(music_files):
+    """Create FFmpeg concat playlist file for seamless music looping"""
+    if not music_files:
+        return None
+    
+    playlist_file = Path('/tmp/music_playlist.txt')
+    
+    with open(playlist_file, 'w') as f:
+        for music_file in music_files:
+            # Use absolute path and escape single quotes
+            abs_path = str(music_file.resolve()).replace("'", "'\\''")
+            f.write(f"file '{abs_path}'\n")
+    
+    logger.info(f'Created music playlist with {len(music_files)} tracks')
+    return str(playlist_file)
+
 def start_stream():
     """Start FFmpeg streaming process"""
     global ffmpeg_process
@@ -266,11 +307,33 @@ def start_stream():
         ffmpeg_cmd = ['ffmpeg', '-hide_banner']
         ffmpeg_cmd += video_input
         
-        # Audio: Try to capture Chrome's audio output via PulseAudio, fallback to silent
-        # NOTE: prismarine-viewer currently doesn't produce game audio (it's visual only).
-        # This infrastructure is ready for when audio is added or for ambient music.
-        audio_source = 'anullsrc=channel_layout=stereo:sample_rate=44100'
-        ffmpeg_cmd += ['-f', 'lavfi', '-i', audio_source]
+        # Audio: Use Minecraft music files if available, otherwise silent
+        music_files = get_music_files()
+        playlist_file = None
+        using_music = False
+        
+        if music_files:
+            # Create playlist for seamless looping
+            playlist_file = create_music_playlist(music_files)
+            if playlist_file:
+                # Use concat demuxer to loop through music files seamlessly
+                # stream_loop=-1 loops the playlist infinitely
+                ffmpeg_cmd += [
+                    '-f', 'concat',
+                    '-safe', '0',
+                    '-stream_loop', '-1',  # Loop playlist infinitely
+                    '-i', playlist_file
+                ]
+                using_music = True
+                logger.info(f'Using Minecraft music from {MUSIC_DIR} (volume: {MUSIC_VOLUME})')
+            else:
+                # Fallback to silent if playlist creation failed
+                audio_source = 'anullsrc=channel_layout=stereo:sample_rate=44100'
+                ffmpeg_cmd += ['-f', 'lavfi', '-i', audio_source]
+        else:
+            # No music files available, use silent audio
+            audio_source = 'anullsrc=channel_layout=stereo:sample_rate=44100'
+            ffmpeg_cmd += ['-f', 'lavfi', '-i', audio_source]
 
         # Keyframe interval = framerate * 2 (keyframe every 2 seconds)
         keyframe_interval = YOUTUBE_FRAMERATE * 2
@@ -296,15 +359,28 @@ def start_stream():
             '-pix_fmt', 'yuv420p'
         ]
 
-        # Audio encoding (silent AAC)
-        ffmpeg_cmd += [
-            '-map', '0:v',
-            '-map', '1:a',
-            '-c:a', 'aac',
-            '-b:a', '128k',
-            '-ar', '44100',
-            '-ac', '2'
-        ]
+        # Audio encoding with volume adjustment if music is enabled
+        if using_music:
+            # Apply volume filter to music
+            ffmpeg_cmd += [
+                '-filter_complex', f'[1:a]volume={MUSIC_VOLUME}[music]',
+                '-map', '0:v',
+                '-map', '[music]',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-ac', '2'
+            ]
+        else:
+            # Silent audio (no music)
+            ffmpeg_cmd += [
+                '-map', '0:v',
+                '-map', '1:a',
+                '-c:a', 'aac',
+                '-b:a', '128k',
+                '-ar', '44100',
+                '-ac', '2'
+            ]
 
         # HLS output to YouTube upload endpoint (POST)
         ffmpeg_cmd += [

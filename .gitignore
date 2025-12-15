@@ -149,3 +149,10 @@ ffmpeg-*.log
 
 mumble/config/
 mumble/config/*
+
+# Music files (can be large, user-provided)
+streaming/music/*.ogg
+streaming/music/*.mp3
+streaming/music/*.wav
+streaming/music/*.flac
+!streaming/music/README.md

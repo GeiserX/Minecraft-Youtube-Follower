@@ -90,6 +90,9 @@ Copy `.env.example` to `.env` and configure the following variables:
 | `DISPLAY_WIDTH` | `1280` | Virtual display width (should match output for less scaling) |
 | `DISPLAY_HEIGHT` | `720` | Virtual display height (should match output for less scaling) |
 | `TWITCH_STREAM_KEY` | (empty) | Twitch streaming key (if using Twitch) |
+| `ENABLE_MUSIC` | `true` | Enable Minecraft background music (requires music files in `streaming/music/`) |
+| `MUSIC_DIR` | `/app/music` | Directory containing music files (mounted from `streaming/music/`) |
+| `MUSIC_VOLUME` | `0.3` | Music volume level (0.0-1.0, where 0.3 = 30%) |
 
 ### Mumble Server Configuration
 
@@ -139,6 +142,35 @@ Copy `.env.example` to `.env` and configure the following variables:
 5. Add to `.env`:
    - For RTMP: `YOUTUBE_STREAM_KEY=your-key` and `YOUTUBE_INGEST_METHOD=rtmp`
    - For HLS: `YOUTUBE_HLS_URL=your-full-url` and `YOUTUBE_INGEST_METHOD=hls`
+
+## Adding Minecraft Music
+
+The stream can include Minecraft background music by placing music files in the `streaming/music/` directory:
+
+1. **Get Minecraft music files**:
+   - Extract from your Minecraft installation (see `streaming/music/README.md`)
+   - Or download from the [Minecraft Wiki](https://minecraft.wiki/w/Music)
+   - Or use any `.ogg` or `.mp3` files as background music
+
+2. **Place files in `streaming/music/`**:
+   ```bash
+   cp ~/.minecraft/assets/objects/*.ogg streaming/music/
+   ```
+
+3. **Configure volume** (in `.env`):
+   ```
+   ENABLE_MUSIC=true
+   MUSIC_VOLUME=0.3  # 30% volume (adjust as needed)
+   ```
+
+4. **Restart streaming service**:
+   ```bash
+   docker-compose restart streaming-service
+   ```
+
+The music will loop seamlessly through all files in the directory. If no music files are found, the stream uses silent audio.
+
+See `streaming/music/README.md` for detailed instructions.
 
 ## Viewing Your Stream
 

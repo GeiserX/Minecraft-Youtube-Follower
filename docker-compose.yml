@@ -66,6 +66,10 @@ services:
       - YOUTUBE_FRAMERATE=${YOUTUBE_FRAMERATE:-24}
       - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1280}
       - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-720}
+      # Minecraft music configuration
+      - ENABLE_MUSIC=${ENABLE_MUSIC:-true}
+      - MUSIC_DIR=${MUSIC_DIR:-/app/music}
+      - MUSIC_VOLUME=${MUSIC_VOLUME:-0.3}
       - SPECTATOR_URL=http://minecraft-spectator-bot:3000
       - MUMBLE_SERVER=minecraft-mumble-server
       - MUMBLE_PORT=64738
@@ -74,6 +78,7 @@ services:
     volumes:
       - ./streaming/config:/app/config
       - ./streaming/logs:/app/logs
+      - ./streaming/music:/app/music  # Mount music directory (add .ogg files here)
       - ./streaming/capture-viewer.js:/app/capture-viewer.js:ro  # Live updates
       - ./streaming/streaming-service.py:/app/streaming-service.py:ro  # Live updates
     depends_on:

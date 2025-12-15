@@ -51,7 +51,11 @@ RUN npm install --only=production
 COPY . .
 
 # Create directories
-RUN mkdir -p /app/config /app/logs
+RUN mkdir -p /app/config /app/logs /app/music
+
+# Copy music download script
+COPY download-music.sh /app/download-music.sh
+RUN chmod +x /app/download-music.sh
 
 # Set up virtual display
 ENV DISPLAY=:99
