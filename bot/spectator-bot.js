@@ -27,26 +27,33 @@ let isAuthenticating = false;
 // ============================================================================
 const CHECK_INTERVAL = parseInt(process.env.CHECK_INTERVAL_MS || '5000', 10);
 const SWITCH_INTERVAL = parseInt(process.env.SWITCH_INTERVAL_MS || '30000', 10);
-
-// Camera mode: 'third-person' (stable behind player) or 'spectate' (first-person)
 const CAMERA_MODE = (process.env.CAMERA_MODE || 'third-person').toLowerCase();
-
-// Camera update interval - HIGHER = smoother/less jerky (default 2000ms = every 2 seconds)
 const CAMERA_UPDATE_INTERVAL = parseInt(process.env.CAMERA_UPDATE_INTERVAL_MS || '2000', 10);
-
-// Camera positioning - FIXED direction, doesn't follow player's facing
 const CAMERA_DISTANCE = parseFloat(process.env.CAMERA_DISTANCE || '8');
 const CAMERA_HEIGHT = parseFloat(process.env.CAMERA_HEIGHT || '4');
-
-// Fixed camera angle (compass direction): 0=south, 90=west, 180=north, 270=east
-// This keeps the camera stable regardless of where the player looks
 const CAMERA_FIXED_ANGLE = parseFloat(process.env.CAMERA_FIXED_ANGLE || '0');
-
 const VIEWER_VIEW_DISTANCE = parseInt(process.env.VIEWER_VIEW_DISTANCE || '6', 10);
 
-const showcaseLocations = [
-  { x: 0, y: 64, z: 0, description: 'Spawn' },
+// ============================================================================
+// SHOWCASE TOUR - Flying tour when no players online
+// Configure your server's interesting locations here!
+// ============================================================================
+const SHOWCASE_LOCATIONS = [
+  // Format: { x, y, z, yaw, pitch, description, duration_ms }
+  // yaw: 0=south, 90=west, 180=north, 270=east
+  // pitch: 0=horizontal, negative=look up, positive=look down
+  { x: 0, y: 80, z: 0, yaw: 0, pitch: 20, description: 'Spawn Overview', duration: 10000 },
+  { x: 0, y: 64, z: 0, yaw: 90, pitch: 0, description: 'Spawn Ground', duration: 8000 },
+  // Add your base locations below:
+  // { x: 100, y: 70, z: -200, yaw: 45, pitch: 15, description: 'Castle', duration: 12000 },
+  // { x: -500, y: 100, z: 300, yaw: 180, pitch: 25, description: 'Mountain Base', duration: 10000 },
 ];
+
+// Time to spend at each showcase location (ms) - can be overridden per location
+const SHOWCASE_DURATION = parseInt(process.env.SHOWCASE_DURATION_MS || '10000', 10);
+
+// Shared file path for overlay (shared volume with streaming service)
+const OVERLAY_FILE = '/app/config/shared/current_target.txt';
 
 // ============================================================================
 // STATE
@@ -60,9 +67,7 @@ let showcaseIndex = 0;
 let lastCommandTime = 0;
 let lastPlayerListSignature = '';
 let playerRotationIndex = 0;
-
-// Smooth camera position (interpolated)
-let smoothCameraPos = null;
+let showcaseInterval = null;
 
 async function createBot() {
   console.log(`Connecting to server: ${config.host}:${config.port}`);
@@ -128,16 +133,16 @@ function setupBot() {
     console.log('Bot spawned, entering spectator mode...');
     
     setTimeout(() => {
-      // Spectator mode = fly mode, no gravity, no collisions
       bot.chat('/gamemode spectator');
-      
-      // Ensure flying is enabled (redundant in spectator but safe)
-      setTimeout(() => {
-        bot.chat('/fly on');  // Some servers need this
-      }, 500);
+      setTimeout(() => bot.chat('/fly on'), 500);
       
       console.log(`Bot position: ${bot.entity.position}`);
       console.log('Spectator mode: flying enabled, no gravity');
+      
+      // Ensure shared directory exists
+      try {
+        fs.mkdirSync('/app/config/shared', { recursive: true });
+      } catch (e) {}
       
       try {
         viewerPlugin(bot, { port: config.spectatorPort, viewDistance: VIEWER_VIEW_DISTANCE, firstPerson: true });
@@ -160,8 +165,7 @@ function setupBot() {
 
   bot.on('end', () => {
     console.log('Bot disconnected');
-    if (trackingInterval) clearInterval(trackingInterval);
-    if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+    clearAllIntervals();
     if (isAuthenticating) return;
     if (consecutiveFailures >= 3) process.exit(1);
     
@@ -175,15 +179,24 @@ function setupBot() {
   });
 }
 
+function clearAllIntervals() {
+  if (trackingInterval) clearInterval(trackingInterval);
+  if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+  if (showcaseInterval) clearInterval(showcaseInterval);
+  trackingInterval = null;
+  cameraUpdateInterval = null;
+  showcaseInterval = null;
+}
+
 // ============================================================================
 // PLAYER TRACKING
 // ============================================================================
 
 function startPlayerTracking() {
-  if (trackingInterval) clearInterval(trackingInterval);
-  if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+  clearAllIntervals();
   
   console.log(`Tracking: check ${CHECK_INTERVAL/1000}s, switch ${SWITCH_INTERVAL/1000}s`);
+  console.log(`Showcase locations: ${SHOWCASE_LOCATIONS.length}`);
   
   let lastSwitchTime = Date.now();
   
@@ -198,20 +211,21 @@ function startPlayerTracking() {
     }
 
     if (players.length === 0) {
-      if (currentTarget !== null) {
-        console.log('No players - showcase mode');
+      if (currentTarget !== null || !showcaseActive) {
+        console.log('No players online - starting showcase tour');
         currentTarget = null;
         currentTargetName = '';
-        writeCurrentTarget('');
         if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+        cameraUpdateInterval = null;
+        startShowcaseTour();
       }
-      if (!showcaseActive) showcaseBases();
       return;
     }
     
+    // Players online - stop showcase
     if (showcaseActive) {
-      console.log('Players detected');
-      showcaseActive = false;
+      console.log('Players detected - following players');
+      stopShowcaseTour();
     }
 
     const now = Date.now();
@@ -229,18 +243,72 @@ function startPlayerTracking() {
       currentTargetName = newTarget.username;
       lastSwitchTime = now;
       
-      writeCurrentTarget(newTarget.username);
+      writeOverlay(`Now following: ${newTarget.username}`);
       startContinuousFollow(currentTarget);
     }
   }, CHECK_INTERVAL);
 }
 
-function writeCurrentTarget(username) {
+function writeOverlay(text) {
   try {
-    const text = username ? `Now following: ${username}` : '';
-    fs.writeFileSync('/app/config/current_target.txt', text);
-  } catch (e) {}
+    fs.writeFileSync(OVERLAY_FILE, text || '');
+    console.log(`Overlay: "${text}"`);
+  } catch (e) {
+    console.error('Failed to write overlay:', e.message);
+  }
 }
+
+// ============================================================================
+// SHOWCASE TOUR (when no players online)
+// ============================================================================
+
+function startShowcaseTour() {
+  if (showcaseActive) return;
+  showcaseActive = true;
+  showcaseIndex = 0;
+  
+  console.log('Starting showcase tour...');
+  
+  // Go to first location immediately
+  goToShowcaseLocation();
+  
+  // Then rotate through locations
+  showcaseInterval = setInterval(() => {
+    showcaseIndex = (showcaseIndex + 1) % SHOWCASE_LOCATIONS.length;
+    goToShowcaseLocation();
+  }, SHOWCASE_LOCATIONS[showcaseIndex]?.duration || SHOWCASE_DURATION);
+}
+
+function stopShowcaseTour() {
+  showcaseActive = false;
+  if (showcaseInterval) {
+    clearInterval(showcaseInterval);
+    showcaseInterval = null;
+  }
+}
+
+function goToShowcaseLocation() {
+  if (SHOWCASE_LOCATIONS.length === 0) {
+    writeOverlay('Showcase: Spawn');
+    bot.chat('/tp @s 0 80 0 0 20');
+    return;
+  }
+  
+  const loc = SHOWCASE_LOCATIONS[showcaseIndex];
+  const desc = loc.description || `Location ${showcaseIndex + 1}`;
+  
+  writeOverlay(`🎬 ${desc}`);
+  console.log(`Showcase: ${desc} (${loc.x}, ${loc.y}, ${loc.z})`);
+  
+  // Teleport with rotation
+  const yaw = loc.yaw !== undefined ? loc.yaw : 0;
+  const pitch = loc.pitch !== undefined ? loc.pitch : 20;
+  bot.chat(`/tp @s ${loc.x} ${loc.y} ${loc.z} ${yaw} ${pitch}`);
+}
+
+// ============================================================================
+// PLAYER FOLLOWING
+// ============================================================================
 
 function startContinuousFollow(player) {
   if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
@@ -251,8 +319,6 @@ function startContinuousFollow(player) {
     return;
   }
   
-  // Third-person camera - STABLE, doesn't follow player's facing direction
-  // Camera stays at a fixed compass angle relative to the player
   const updateCamera = () => {
     if (!currentTarget || currentTarget.username !== player.username) {
       if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
@@ -261,7 +327,6 @@ function startContinuousFollow(player) {
     
     const targetPlayer = bot.players[player.username];
     if (!targetPlayer?.entity) {
-      // Player not in render distance - teleport to them
       const now = Date.now();
       if (now - lastCommandTime > 3000) {
         bot.chat(`/tp @s ${player.username}`);
@@ -271,17 +336,13 @@ function startContinuousFollow(player) {
     }
     
     const playerPos = targetPlayer.entity.position;
-    
-    // FIXED camera angle (doesn't change with player facing)
     const angleRad = (CAMERA_FIXED_ANGLE * Math.PI) / 180;
     
-    // Calculate camera position at fixed angle behind player
     const cameraX = playerPos.x - Math.sin(angleRad) * CAMERA_DISTANCE;
     const cameraZ = playerPos.z + Math.cos(angleRad) * CAMERA_DISTANCE;
     const cameraY = playerPos.y + CAMERA_HEIGHT;
     
-    // Calculate look direction towards player's chest (not head for more stability)
-    const targetY = playerPos.y + 1.0; // Chest height
+    const targetY = playerPos.y + 1.0;
     const dx = playerPos.x - cameraX;
     const dy = targetY - cameraY;
     const dz = playerPos.z - cameraZ;
@@ -293,11 +354,10 @@ function startContinuousFollow(player) {
     const yawDeg = (lookYaw * 180) / Math.PI;
     const pitchDeg = (lookPitch * 180) / Math.PI;
     
-    // Teleport camera
     const cmd = `/tp @s ${cameraX.toFixed(2)} ${cameraY.toFixed(2)} ${cameraZ.toFixed(2)} ${yawDeg.toFixed(1)} ${pitchDeg.toFixed(1)}`;
     
     const now = Date.now();
-    if (now - lastCommandTime > 500) { // Rate limit
+    if (now - lastCommandTime > 500) {
       bot.chat(cmd);
       lastCommandTime = now;
     }
@@ -308,33 +368,18 @@ function startContinuousFollow(player) {
   console.log(`Following ${player.username} (third-person, stable camera)`);
 }
 
-function showcaseBases() {
-  if (showcaseActive) return;
-  showcaseActive = true;
-  writeCurrentTarget('Showcase');
-  
-  if (showcaseLocations.length === 0) return;
-  
-  const location = showcaseLocations[showcaseIndex];
-  console.log(`Showcase: ${location.description}`);
-  
-  if (bot?.entity) {
-    bot.chat(`/tp @s ${location.x} ${location.y} ${location.z}`);
-  }
-  
-  showcaseIndex = (showcaseIndex + 1) % showcaseLocations.length;
-}
+// ============================================================================
+// CLEANUP
+// ============================================================================
 
 process.on('SIGINT', () => {
-  if (trackingInterval) clearInterval(trackingInterval);
-  if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+  clearAllIntervals();
   if (bot) bot.quit();
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  if (trackingInterval) clearInterval(trackingInterval);
-  if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+  clearAllIntervals();
   if (bot) bot.quit();
   process.exit(0);
 });

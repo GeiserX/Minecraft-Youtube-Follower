@@ -76,12 +76,17 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `CAMERA_MODE` | `third-person` | Camera mode: `third-person` (shows player) or `spectate` (first-person POV) |
-| `CAMERA_UPDATE_INTERVAL_MS` | `500` | Camera position update rate (lower = smoother, more CPU) |
-| `CAMERA_DISTANCE` | `6` | Base distance behind player (blocks) |
-| `CAMERA_HEIGHT` | `2` | Base height above player's head (blocks) |
-| `CAMERA_ANGLE_OFFSET` | `0` | Horizontal angle offset (degrees) |
+| `CAMERA_UPDATE_INTERVAL_MS` | `2000` | Camera position update rate in ms (lower = smoother but more commands) |
+| `CAMERA_DISTANCE` | `8` | How far behind the player the camera floats (in blocks) |
+| `CAMERA_HEIGHT` | `4` | How high above the player's feet the camera floats (in blocks) |
+| `CAMERA_FIXED_ANGLE` | `0` | Fixed horizontal angle relative to player (degrees, 0=behind, 90=left side) |
 | `CHECK_INTERVAL_MS` | `5000` | How often to check for players (ms) |
 | `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
+| `SHOWCASE_DURATION_MS` | `10000` | Time spent at each showcase location when no players online (ms) |
+
+**CAMERA_DISTANCE vs VIEWER_VIEW_DISTANCE:**
+- `CAMERA_DISTANCE` = How many blocks behind the player the camera is positioned
+- `VIEWER_VIEW_DISTANCE` = How many chunks (16x16 block areas) are rendered in the viewer
 
 ### Streaming Configuration
 
@@ -95,17 +100,28 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 | `YOUTUBE_VIDEO_BITRATE` | `2500k` | Video bitrate |
 | `YOUTUBE_FRAMERATE` | `30` | Stream framerate |
 | `USE_HARDWARE_ENCODING` | `true` | Use Intel VAAPI if available |
-| `ENCODER_PRESET` | `faster` | x264 preset (ultrafast/superfast/veryfast/faster/fast) |
+| `ENCODER_PRESET` | `faster` | x264 speed/quality tradeoff (see below) |
+
+**ENCODER_PRESET Options** (from fastest to slowest):
+| Preset | CPU Usage | Quality | Recommended For |
+|--------|-----------|---------|-----------------|
+| `ultrafast` | Lowest | Poorest | Weak CPUs, testing |
+| `superfast` | Very Low | Poor | Low-end systems |
+| `veryfast` | Low | Below Average | Budget systems |
+| `faster` | Below Average | Good | **Default** - balanced |
+| `fast` | Average | Very Good | Mid-range systems |
+| `medium` | Above Average | Excellent | Powerful systems |
+| `slow` | High | Best | When quality is priority |
 
 ### Overlay & Music
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `ENABLE_OVERLAY` | `true` | Show player name overlay |
-| `OVERLAY_FONT_SIZE` | `24` | Overlay font size (pixels) |
+| `ENABLE_OVERLAY` | `true` | Show player name overlay (e.g., "Now following: PlayerName") |
+| `OVERLAY_FONT_SIZE` | `28` | Overlay font size (pixels) - doubled internally for visibility |
 | `OVERLAY_POSITION` | `top-left` | Position: `top-left`, `top-right`, `bottom-left`, `bottom-right` |
 | `ENABLE_MUSIC` | `true` | Play background music |
-| `MUSIC_VOLUME` | `0.3` | Music volume (0.0-1.0) |
+| `MUSIC_VOLUME` | `0.15` | Music volume (0.0-1.0) - keep low if using voice chat |
 
 ### Performance Settings
 
@@ -142,6 +158,23 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 8. FFmpeg encodes (with hardware acceleration if available) and streams
 9. Player name overlay added to stream
 10. When no players online, bot showcases pre-configured locations
+
+## Showcase Mode Configuration
+
+When no players are online, the bot can fly around showcasing interesting builds. Edit `bot/spectator-bot.js` to configure your locations:
+
+```javascript
+const SHOWCASE_LOCATIONS = [
+  // Format: { x, y, z, yaw, pitch, description, duration }
+  // yaw: 0=south, 90=west, 180=north, 270=east
+  // pitch: 0=horizontal, negative=look up, positive=look down
+  { x: 0, y: 80, z: 0, yaw: 0, pitch: 20, description: 'Spawn Overview', duration: 10000 },
+  { x: 100, y: 70, z: -200, yaw: 45, pitch: 15, description: 'Castle', duration: 12000 },
+  { x: -500, y: 100, z: 300, yaw: 180, pitch: 25, description: 'Mountain Base', duration: 10000 },
+];
+```
+
+The overlay will display the location description (e.g., "🎬 Castle") while showcasing.
 
 ## Mumble Deployment (Unraid)
 

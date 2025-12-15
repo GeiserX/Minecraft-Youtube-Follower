@@ -196,14 +196,14 @@ docker-compose up -d
 ### High CPU Usage
 
 - Reduce stream quality in `docker-compose.yml`:
-  ```yaml
+```yaml
   DISPLAY_WIDTH=1280
   DISPLAY_HEIGHT=720
-  ```
+```
 - Lower video bitrate in `streaming/streaming-service.py`:
-  ```python
-  '-b:v', '2000k',  # Reduced from 3000k
-  ```
+```python
+'-b:v', '2000k',  # Reduced from 3000k
+```
 
 ## Maintenance
 

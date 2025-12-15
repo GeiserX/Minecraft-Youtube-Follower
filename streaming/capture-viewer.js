@@ -23,17 +23,17 @@ async function captureViewer() {
   try {
     // Launch browser in non-headless mode so FFmpeg can capture it via x11grab
     console.log('Launching Chromium browser...');
-    const browser = await puppeteer.launch({
+  const browser = await puppeteer.launch({
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || '/usr/bin/chromium',
       headless: false, // Must be false for x11grab to capture
       // Remove the "Chrome is being controlled" infobar
       ignoreDefaultArgs: ['--enable-automation'],
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        `--display=${DISPLAY}`,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-gpu',
+      `--display=${DISPLAY}`,
         `--window-size=${WIDTH},${HEIGHT}`,
         '--start-maximized',
         '--kiosk', // Fullscreen mode
@@ -51,25 +51,25 @@ async function captureViewer() {
         '--disable-sync',
         '--metrics-recording-only',
         '--disable-default-apps'
-      ]
-    });
+    ]
+  });
     
     const browserProcess = browser.process();
     console.log('Browser launched, PID:', browserProcess ? browserProcess.pid : 'unknown');
-    
-    const page = await browser.newPage();
-    await page.setViewport({ width: WIDTH, height: HEIGHT });
+  
+  const page = await browser.newPage();
+  await page.setViewport({ width: WIDTH, height: HEIGHT });
 
     // Hide automation indicators
     await page.evaluateOnNewDocument(() => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
-    
-    console.log(`Navigating to viewer: ${VIEWER_URL}`);
+  
+  console.log(`Navigating to viewer: ${VIEWER_URL}`);
     
     // Wait for page to load
     await page.goto(VIEWER_URL, { waitUntil: 'networkidle0', timeout: 60000 });
-    
+  
     console.log('Viewer loaded successfully');
     console.log('Browser window open for FFmpeg capture via x11grab');
     
@@ -84,12 +84,12 @@ async function captureViewer() {
     });
   
     // Keep browser open - FFmpeg captures via x11grab
-    process.on('SIGTERM', async () => {
-      console.log('Closing browser...');
-      await browser.close();
-      process.exit(0);
-    });
-    
+  process.on('SIGTERM', async () => {
+    console.log('Closing browser...');
+    await browser.close();
+    process.exit(0);
+  });
+  
     process.on('SIGINT', async () => {
       console.log('Closing browser...');
       await browser.close();
@@ -101,10 +101,10 @@ async function captureViewer() {
       try {
         await page.evaluate(() => document.title);
       } catch (e) {
-        console.error('Viewer page became unresponsive');
-        process.exit(1);
+      console.error('Viewer page became unresponsive');
+      process.exit(1);
       }
-    }, 30000);
+  }, 30000);
     
   } catch (error) {
     console.error('Error in captureViewer:', error.message);

@@ -26,6 +26,7 @@ services:
       - ./bot/logs:/app/logs
       - ./bot/spectator-bot.js:/app/spectator-bot.js:ro
       - ./bot/package.json:/app/package.json:ro
+      - shared-config:/app/config/shared
     restart: unless-stopped
     networks:
       - minecraft-streaming
@@ -72,6 +73,7 @@ services:
       - ./streaming/music:/app/music
       - ./streaming/capture-viewer.js:/app/capture-viewer.js:ro
       - ./streaming/streaming-service.py:/app/streaming-service.py:ro
+      - shared-config:/app/shared
     depends_on:
       - minecraft-spectator-bot
       - mumble-server
@@ -95,6 +97,8 @@ services:
 
 volumes:
   minecraft-bot-auth:
+    driver: local
+  shared-config:
     driver: local
 
 networks:

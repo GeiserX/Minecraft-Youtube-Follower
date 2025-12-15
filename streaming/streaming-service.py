@@ -55,11 +55,11 @@ MUSIC_DIR = os.getenv('MUSIC_DIR', '/app/music')
 ENABLE_MUSIC = os.getenv('ENABLE_MUSIC', 'true').lower() == 'true'
 MUSIC_VOLUME = float(os.getenv('MUSIC_VOLUME', '0.3'))
 
-# Overlay
+# Overlay (reads from shared volume with bot)
 ENABLE_OVERLAY = os.getenv('ENABLE_OVERLAY', 'true').lower() == 'true'
-OVERLAY_FONT_SIZE = int(os.getenv('OVERLAY_FONT_SIZE', '24'))
+OVERLAY_FONT_SIZE = int(os.getenv('OVERLAY_FONT_SIZE', '28'))
 OVERLAY_POSITION = os.getenv('OVERLAY_POSITION', 'top-left')
-TARGET_FILE = '/app/config/current_target.txt'
+TARGET_FILE = '/app/shared/current_target.txt'  # Shared with bot container
 
 # Build stream URL
 if STREAM_PLATFORM == 'youtube':
@@ -197,24 +197,40 @@ def build_overlay_filter():
         return None
     
     positions = {
-        'top-left': 'x=20:y=20',
-        'top-right': 'x=w-tw-20:y=20',
-        'bottom-left': 'x=20:y=h-th-20',
-        'bottom-right': 'x=w-tw-20:y=h-th-20',
+        'top-left': 'x=30:y=30',
+        'top-right': 'x=w-tw-30:y=30',
+        'bottom-left': 'x=30:y=h-th-30',
+        'bottom-right': 'x=w-tw-30:y=h-th-30',
     }
     pos = positions.get(OVERLAY_POSITION, positions['top-left'])
     
-    # Ensure target file exists
+    # Ensure target file exists with initial content
     try:
         os.makedirs(os.path.dirname(TARGET_FILE), exist_ok=True)
         if not os.path.exists(TARGET_FILE):
             with open(TARGET_FILE, 'w') as f:
-                f.write('')
-    except:
-        pass
+                f.write('Starting...')
+    except Exception as e:
+        logger.warning(f'Could not create overlay file: {e}')
+        return None
     
-    # Bubble-style overlay with rounded appearance (larger box padding, more visible)
-    return f"drawtext=textfile='{TARGET_FILE}':reload=1:fontsize={OVERLAY_FONT_SIZE}:fontcolor=white:borderw=3:bordercolor=black:box=1:boxcolor=0x000000@0.7:boxborderw=12:{pos}"
+    # Large, visible overlay with contrasting colors
+    # Using default font (no fontfile needed), large size, high contrast
+    font_size = OVERLAY_FONT_SIZE * 2  # Double size for visibility
+    return (
+        f"drawtext="
+        f"textfile='{TARGET_FILE}':"
+        f"reload=1:"
+        f"fontsize={font_size}:"
+        f"fontcolor=yellow:"
+        f"shadowcolor=black:"
+        f"shadowx=3:"
+        f"shadowy=3:"
+        f"box=1:"
+        f"boxcolor=black@0.8:"
+        f"boxborderw=15:"
+        f"{pos}"
+    )
 
 def start_stream():
     global ffmpeg_process

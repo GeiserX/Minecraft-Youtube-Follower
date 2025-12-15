@@ -1,0 +1,129 @@
+# Production Docker Compose for Minecraft YouTube Follower
+# Uses pre-built images from Docker Hub
+# 
+# Usage:
+#   1. Copy .env.example to .env and configure your settings
+#   2. docker-compose -f docker-compose.prod.yml up -d
+#
+# For Intel iGPU hardware encoding, uncomment the devices section in streaming-service
+
+services:
+  minecraft-spectator-bot:
+    image: drumsergio/minecraft-spectator-bot:0.5.1
+    container_name: minecraft-spectator-bot
+    environment:
+      # Required: Your Minecraft Java Edition username
+      - MINECRAFT_USERNAME=YourMinecraftUsername
+      # Required: Your Minecraft server address
+      - SERVER_HOST=mc.example.com
+      - SERVER_PORT=25565
+      # Required: Azure App Registration client ID
+      - AZURE_CLIENT_ID=12345678-1234-1234-1234-123456789abc
+      # Camera settings
+      - CAMERA_MODE=third-person
+      - CAMERA_UPDATE_INTERVAL_MS=2000
+      - CAMERA_DISTANCE=8
+      - CAMERA_HEIGHT=4
+      - CAMERA_FIXED_ANGLE=0
+      - CHECK_INTERVAL_MS=5000
+      - SWITCH_INTERVAL_MS=30000
+      # Showcase tour (when no players online) - duration per location
+      - SHOWCASE_DURATION_MS=10000
+      # Viewer settings
+      - SPECTATOR_PORT=3000
+      - VIEWER_VIEW_DISTANCE=6
+      # Auth cache (do not change)
+      - AUTH_CACHE_DIR=/app/config/.auth
+      # If you get tenant/consent errors, try: https://login.microsoftonline.com/common
+      - MSAL_AUTHORITY=https://login.microsoftonline.com/consumers
+    volumes:
+      - minecraft-bot-auth:/app/config/.auth
+      - bot-logs:/app/logs
+      - shared-config:/app/config/shared
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+  streaming-service:
+    image: drumsergio/minecraft-streaming-service:0.5.1
+    container_name: minecraft-streaming-service
+    # Uncomment for Intel iGPU hardware encoding (Linux only)
+    # devices:
+    #   - /dev/dri:/dev/dri
+    environment:
+      # Required: YouTube stream key (RTMP) or HLS URL
+      - YOUTUBE_STREAM_KEY=xxxx-xxxx-xxxx-xxxx-xxxx
+      # Or for HLS (copy full URL from YouTube Studio):
+      # - YOUTUBE_HLS_URL=https://a.upload.youtube.com/http_upload_hls?cid=...&copy=0&file=
+      - STREAM_PLATFORM=youtube
+      - YOUTUBE_INGEST_METHOD=rtmp
+      # Video quality (adjust based on your connection)
+      - YOUTUBE_OUTPUT_WIDTH=1280
+      - YOUTUBE_OUTPUT_HEIGHT=720
+      - YOUTUBE_VIDEO_BITRATE=2500k
+      - YOUTUBE_MAXRATE=2500k
+      - YOUTUBE_BUFSIZE=5000k
+      - YOUTUBE_FRAMERATE=30
+      # Display settings (should match output)
+      - DISPLAY_WIDTH=1280
+      - DISPLAY_HEIGHT=720
+      # Encoding (set to false to force software encoding)
+      - USE_HARDWARE_ENCODING=true
+      - ENCODER_PRESET=faster
+      # Player name overlay
+      - ENABLE_OVERLAY=true
+      - OVERLAY_FONT_SIZE=28
+      - OVERLAY_POSITION=top-left
+      # Music (place .ogg/.mp3 files in music volume)
+      - ENABLE_MUSIC=true
+      - MUSIC_VOLUME=0.15
+      - MUSIC_DIR=/app/music
+      # Internal (do not change)
+      - SPECTATOR_URL=http://minecraft-spectator-bot:3000
+      - MUMBLE_SERVER=minecraft-mumble-server
+      - MUMBLE_PORT=64738
+    volumes:
+      - streaming-config:/app/config
+      - streaming-logs:/app/logs
+      - streaming-music:/app/music
+      - shared-config:/app/shared
+    depends_on:
+      - minecraft-spectator-bot
+      - mumble-server
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+  mumble-server:
+    image: mumblevoip/mumble-server:latest
+    container_name: minecraft-mumble-server
+    ports:
+      - "64738:64738/tcp"
+      - "64738:64738/udp"
+    environment:
+      - MUMBLE_SUPERUSER_PASSWORD=changeme
+    volumes:
+      - mumble-data:/data
+    restart: unless-stopped
+    networks:
+      - minecraft-streaming
+
+volumes:
+  minecraft-bot-auth:
+    driver: local
+  bot-logs:
+    driver: local
+  streaming-config:
+    driver: local
+  streaming-logs:
+    driver: local
+  streaming-music:
+    driver: local
+  mumble-data:
+    driver: local
+  shared-config:
+    driver: local
+
+networks:
+  minecraft-streaming:
+    driver: bridge
