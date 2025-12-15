@@ -52,8 +52,9 @@ const SHOWCASE_LOCATIONS = [
 // Time to spend at each showcase location (ms) - can be overridden per location
 const SHOWCASE_DURATION = parseInt(process.env.SHOWCASE_DURATION_MS || '10000', 10);
 
-// Shared file path for overlay (shared volume with streaming service)
+// Shared file paths (shared volume with streaming service)
 const OVERLAY_FILE = '/app/config/shared/current_target.txt';
+const STREAM_STATUS_FILE = '/app/config/shared/stream_status.txt';  // "active" or "paused"
 
 // ============================================================================
 // STATE
@@ -227,6 +228,9 @@ function startPlayerTracking() {
   console.log(`Tracking: check ${CHECK_INTERVAL/1000}s, switch ${SWITCH_INTERVAL/1000}s`);
   console.log(`Showcase locations: ${SHOWCASE_LOCATIONS.length}`);
   
+  // Write initial status - will be updated on first player check
+  writeStreamStatus('paused');  // Start paused, will switch to active if players found
+  
   let lastSwitchTime = Date.now();
   
   trackingInterval = setInterval(() => {
@@ -241,20 +245,23 @@ function startPlayerTracking() {
 
     if (players.length === 0) {
       if (currentTarget !== null || !showcaseActive) {
-        console.log('No players online - starting showcase tour');
+        console.log('No players online - pausing stream');
         currentTarget = null;
         currentTargetName = '';
         if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
         cameraUpdateInterval = null;
-        startShowcaseTour();
+        writeStreamStatus('paused');
+        writeOverlay('Server empty - stream paused');
+        // Don't showcase, just pause
       }
       return;
     }
     
-    // Players online - stop showcase
-    if (showcaseActive) {
-      console.log('Players detected - following players');
+    // Players online - resume streaming
+    if (showcaseActive || !currentTarget) {
+      console.log('Players detected - resuming stream');
       stopShowcaseTour();
+      writeStreamStatus('active');
     }
 
     const now = Date.now();
@@ -284,6 +291,15 @@ function writeOverlay(text) {
     console.log(`Overlay: "${text}"`);
   } catch (e) {
     console.error('Failed to write overlay:', e.message);
+  }
+}
+
+function writeStreamStatus(status) {
+  try {
+    fs.writeFileSync(STREAM_STATUS_FILE, status);
+    console.log(`Stream status: ${status}`);
+  } catch (e) {
+    console.error('Failed to write stream status:', e.message);
   }
 }
 

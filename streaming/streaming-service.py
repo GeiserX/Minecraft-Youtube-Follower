@@ -60,6 +60,7 @@ ENABLE_OVERLAY = os.getenv('ENABLE_OVERLAY', 'true').lower() == 'true'
 OVERLAY_FONT_SIZE = int(os.getenv('OVERLAY_FONT_SIZE', '28'))
 OVERLAY_POSITION = os.getenv('OVERLAY_POSITION', 'top-left')
 TARGET_FILE = '/app/shared/current_target.txt'  # Shared with bot container
+STREAM_STATUS_FILE = '/app/shared/stream_status.txt'  # "active" or "paused"
 
 # Build stream URL
 if STREAM_PLATFORM == 'youtube':
@@ -416,7 +417,31 @@ def signal_handler(sig, frame):
 signal.signal(signal.SIGINT, signal_handler)
 signal.signal(signal.SIGTERM, signal_handler)
 
+def is_stream_active():
+    """Check if bot wants streaming to be active (players online)"""
+    try:
+        if os.path.exists(STREAM_STATUS_FILE):
+            with open(STREAM_STATUS_FILE, 'r') as f:
+                status = f.read().strip().lower()
+                return status == 'active'
+        return True  # Default to active if file doesn't exist
+    except:
+        return True
+
+def stop_ffmpeg():
+    """Stop FFmpeg process"""
+    global ffmpeg_process
+    if ffmpeg_process:
+        logger.info('Stopping FFmpeg (server empty)...')
+        ffmpeg_process.terminate()
+        try:
+            ffmpeg_process.wait(timeout=5)
+        except:
+            ffmpeg_process.kill()
+        ffmpeg_process = None
+
 def main():
+    global ffmpeg_process
     logger.info('Starting streaming service...')
     logger.info(f'{STREAM_PLATFORM} @ {YOUTUBE_OUTPUT_WIDTH}x{YOUTUBE_OUTPUT_HEIGHT}@{YOUTUBE_FRAMERATE}fps')
     
@@ -431,37 +456,57 @@ def main():
                 cleanup()
                 sys.exit(1)
     
-    if not start_stream():
-        cleanup()
-        sys.exit(1)
+    # Wait for initial stream status
+    logger.info('Waiting for bot to signal stream status...')
+    for _ in range(30):  # Wait up to 30 seconds
+        if os.path.exists(STREAM_STATUS_FILE):
+            break
+        time.sleep(1)
+    
+    stream_was_active = False
     
     try:
         while True:
-            if puppeteer_process and puppeteer_process.poll() is not None:
-                logger.error('Puppeteer died, restarting...')
-                if ffmpeg_process:
-                    ffmpeg_process.terminate()
-                start_puppeteer()
-                wait_for_x_windows(90)
-                start_stream()
+            # Check if we should be streaming
+            should_stream = is_stream_active()
             
-            if os.name != 'nt' and not _has_x_windows():
-                logger.error('X window gone, restarting...')
-                if ffmpeg_process:
-                    ffmpeg_process.terminate()
-                if puppeteer_process:
-                    puppeteer_process.terminate()
-                start_puppeteer()
-                wait_for_x_windows(90)
-                start_stream()
+            if should_stream and not stream_was_active:
+                # Start streaming
+                logger.info('Players online - starting stream')
+                if not ffmpeg_process or ffmpeg_process.poll() is not None:
+                    start_stream()
+                stream_was_active = True
+            elif not should_stream and stream_was_active:
+                # Stop streaming
+                logger.info('Server empty - stopping stream')
+                stop_ffmpeg()
+                stream_was_active = False
             
-            if ffmpeg_process and ffmpeg_process.poll() is not None:
-                logger.error('FFmpeg died, restarting...')
-                time.sleep(5)
-                if not start_stream():
-                    break
+            # Only do health checks if we're supposed to be streaming
+            if should_stream:
+                if puppeteer_process and puppeteer_process.poll() is not None:
+                    logger.error('Puppeteer died, restarting...')
+                    stop_ffmpeg()
+                    start_puppeteer()
+                    wait_for_x_windows(90)
+                    start_stream()
+                
+                if os.name != 'nt' and not _has_x_windows():
+                    logger.error('X window gone, restarting...')
+                    stop_ffmpeg()
+                    if puppeteer_process:
+                        puppeteer_process.terminate()
+                    start_puppeteer()
+                    wait_for_x_windows(90)
+                    start_stream()
+                
+                if ffmpeg_process and ffmpeg_process.poll() is not None:
+                    logger.error('FFmpeg died, restarting...')
+                    time.sleep(5)
+                    if not start_stream():
+                        break
             
-            time.sleep(10)
+            time.sleep(5)  # Check status every 5 seconds
     except KeyboardInterrupt:
         pass
     finally:
