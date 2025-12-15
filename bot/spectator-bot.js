@@ -134,10 +134,29 @@ function setupBot() {
     
     setTimeout(() => {
       bot.chat('/gamemode spectator');
-      setTimeout(() => bot.chat('/fly on'), 500);
       
-      console.log(`Bot position: ${bot.entity.position}`);
-      console.log('Spectator mode: flying enabled, no gravity');
+      // CRITICAL: Disable Mineflayer's physics simulation to prevent falling
+      // Spectator mode is server-side, but Mineflayer runs its own physics
+      setTimeout(() => {
+        // Disable gravity completely
+        if (bot.physics) {
+          bot.physics.gravity = 0;
+          bot.physics.yawSpeed = 0;
+          bot.physics.pitchSpeed = 0;
+        }
+        
+        // Set flying state (prevents falling simulation)
+        bot.creative.flying = true;
+        bot.creative.flyingSpeed = 0.5;
+        
+        // Clear any vertical velocity
+        if (bot.entity && bot.entity.velocity) {
+          bot.entity.velocity.y = 0;
+        }
+        
+        console.log(`Bot position: ${bot.entity.position}`);
+        console.log('Spectator mode: gravity disabled, flying enabled');
+      }, 500);
       
       // Ensure shared directory exists
       try {
@@ -154,6 +173,16 @@ function setupBot() {
       startPlayerTracking();
     }, 2000);
   });
+  
+  // Continuously enforce no-gravity state (in case server resets it)
+  setInterval(() => {
+    if (bot.physics) {
+      bot.physics.gravity = 0;
+    }
+    if (bot.entity && bot.entity.velocity) {
+      bot.entity.velocity.y = Math.max(0, bot.entity.velocity.y); // Prevent downward velocity
+    }
+  }, 100);
 
   bot.on('error', (err) => {
     console.error('Bot error:', err);
@@ -310,62 +339,48 @@ function goToShowcaseLocation() {
 // PLAYER FOLLOWING
 // ============================================================================
 
+// Store last camera position for enforcement
+let lastCameraPos = null;
+
 function startContinuousFollow(player) {
   if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
   
   if (CAMERA_MODE === 'spectate') {
+    // First-person: use server-side spectate (most stable, no falling)
     bot.chat(`/spectate ${player.username}`);
-    console.log(`Spectating ${player.username} (first-person)`);
+    console.log(`Spectating ${player.username} (first-person, server-controlled)`);
     return;
   }
   
+  // Third-person: use server-side execute command for stable positioning
+  // This positions the camera using SERVER coordinates, not Mineflayer physics
   const updateCamera = () => {
     if (!currentTarget || currentTarget.username !== player.username) {
       if (cameraUpdateInterval) clearInterval(cameraUpdateInterval);
+      lastCameraPos = null;
       return;
     }
-    
-    const targetPlayer = bot.players[player.username];
-    if (!targetPlayer?.entity) {
-      const now = Date.now();
-      if (now - lastCommandTime > 3000) {
-        bot.chat(`/tp @s ${player.username}`);
-        lastCommandTime = now;
-      }
-      return;
-    }
-    
-    const playerPos = targetPlayer.entity.position;
-    const angleRad = (CAMERA_FIXED_ANGLE * Math.PI) / 180;
-    
-    const cameraX = playerPos.x - Math.sin(angleRad) * CAMERA_DISTANCE;
-    const cameraZ = playerPos.z + Math.cos(angleRad) * CAMERA_DISTANCE;
-    const cameraY = playerPos.y + CAMERA_HEIGHT;
-    
-    const targetY = playerPos.y + 1.0;
-    const dx = playerPos.x - cameraX;
-    const dy = targetY - cameraY;
-    const dz = playerPos.z - cameraZ;
-    const horizontalDist = Math.sqrt(dx * dx + dz * dz);
-    
-    const lookYaw = Math.atan2(-dx, dz);
-    const lookPitch = Math.atan2(-dy, horizontalDist);
-    
-    const yawDeg = (lookYaw * 180) / Math.PI;
-    const pitchDeg = (lookPitch * 180) / Math.PI;
-    
-    const cmd = `/tp @s ${cameraX.toFixed(2)} ${cameraY.toFixed(2)} ${cameraZ.toFixed(2)} ${yawDeg.toFixed(1)} ${pitchDeg.toFixed(1)}`;
     
     const now = Date.now();
-    if (now - lastCommandTime > 500) {
-      bot.chat(cmd);
-      lastCommandTime = now;
-    }
+    
+    // Rate limit commands to avoid spam (but fast enough to prevent visible falling)
+    if (now - lastCommandTime < 400) return;
+    
+    // Use /execute to position camera relative to player (server-side, no physics)
+    // ^X = left/right, ^Y = up/down, ^Z = forward/backward (relative to player facing)
+    // Using absolute offset instead to get consistent behind-the-player view
+    const cmd = `/execute as ${player.username} at @s positioned ^ ^${CAMERA_HEIGHT} ^-${CAMERA_DISTANCE} run tp ${bot.username} ~ ~ ~ facing entity ${player.username} eyes`;
+    
+    bot.chat(cmd);
+    lastCommandTime = now;
   };
   
+  // Run immediately and then at interval
   updateCamera();
-  cameraUpdateInterval = setInterval(updateCamera, CAMERA_UPDATE_INTERVAL);
-  console.log(`Following ${player.username} (third-person, stable camera)`);
+  
+  // Use shorter interval (500ms) for smoother following without falling
+  cameraUpdateInterval = setInterval(updateCamera, Math.min(CAMERA_UPDATE_INTERVAL, 500));
+  console.log(`Following ${player.username} (third-person, server-controlled camera)`);
 }
 
 // ============================================================================
