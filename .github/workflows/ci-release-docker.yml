@@ -179,7 +179,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: ./bot
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true
         tags: ${{ steps.meta_bot.outputs.tags }}
         labels: ${{ steps.meta_bot.outputs.labels }}
@@ -190,7 +190,7 @@ jobs:
       uses: docker/build-push-action@v6
       with:
         context: ./streaming
-        platforms: linux/amd64,linux/arm64
+        platforms: linux/amd64
         push: true
         tags: ${{ steps.meta_streaming.outputs.tags }}
         labels: ${{ steps.meta_streaming.outputs.labels }}

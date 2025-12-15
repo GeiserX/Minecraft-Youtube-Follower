@@ -128,8 +128,16 @@ function setupBot() {
     console.log('Bot spawned, entering spectator mode...');
     
     setTimeout(() => {
+      // Spectator mode = fly mode, no gravity, no collisions
       bot.chat('/gamemode spectator');
+      
+      // Ensure flying is enabled (redundant in spectator but safe)
+      setTimeout(() => {
+        bot.chat('/fly on');  // Some servers need this
+      }, 500);
+      
       console.log(`Bot position: ${bot.entity.position}`);
+      console.log('Spectator mode: flying enabled, no gravity');
       
       try {
         viewerPlugin(bot, { port: config.spectatorPort, viewDistance: VIEWER_VIEW_DISTANCE, firstPerson: true });
