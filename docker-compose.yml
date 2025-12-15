@@ -1,3 +1,4 @@
+# Development Docker Compose - Builds images locally
 services:
   minecraft-spectator-bot:
     build:
@@ -6,28 +7,25 @@ services:
     container_name: minecraft-spectator-bot
     environment:
       - MINECRAFT_USERNAME=${MINECRAFT_USERNAME}
-      - SERVER_HOST=${SERVER_HOST:-your_server_ip}
+      - SERVER_HOST=${SERVER_HOST:-mc.example.com}
       - SERVER_PORT=${SERVER_PORT:-25565}
-      - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
-      - AUTH_CACHE_DIR=/app/config/.auth
       - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
-      # Following behavior:
-      # - USE_SPECTATE=true: smooth first-person view (default, best for streams)
-      # - USE_SPECTATE=false: third-person camera with adaptive distance
-      - USE_SPECTATE=${USE_SPECTATE:-true}
+      - CAMERA_MODE=${CAMERA_MODE:-third-person}
+      - CAMERA_UPDATE_INTERVAL_MS=${CAMERA_UPDATE_INTERVAL_MS:-500}
+      - CAMERA_DISTANCE=${CAMERA_DISTANCE:-6}
+      - CAMERA_HEIGHT=${CAMERA_HEIGHT:-2}
+      - CAMERA_ANGLE_OFFSET=${CAMERA_ANGLE_OFFSET:-0}
       - CHECK_INTERVAL_MS=${CHECK_INTERVAL_MS:-5000}
       - SWITCH_INTERVAL_MS=${SWITCH_INTERVAL_MS:-30000}
-      - FOLLOW_DISTANCE=${FOLLOW_DISTANCE:-8}
-      - FOLLOW_HEIGHT=${FOLLOW_HEIGHT:-3}
+      - SPECTATOR_PORT=${SPECTATOR_PORT:-3000}
       - VIEWER_VIEW_DISTANCE=${VIEWER_VIEW_DISTANCE:-6}
-      # Auth troubleshooting: if you get tenant/consent errors on login, try:
-      # MSAL_AUTHORITY=https://login.microsoftonline.com/common
+      - AUTH_CACHE_DIR=/app/config/.auth
       - MSAL_AUTHORITY=${MSAL_AUTHORITY:-https://login.microsoftonline.com/consumers}
     volumes:
-      - minecraft-bot-auth:/app/config/.auth  # Persistent volume for auth cache (survives upgrades)
+      - minecraft-bot-auth:/app/config/.auth
       - ./bot/logs:/app/logs
-      - ./bot/spectator-bot.js:/app/spectator-bot.js:ro  # Mount code for live updates (no rebuild needed)
-      - ./bot/package.json:/app/package.json:ro  # Mount package.json in case dependencies change
+      - ./bot/spectator-bot.js:/app/spectator-bot.js:ro
+      - ./bot/package.json:/app/package.json:ro
     restart: unless-stopped
     networks:
       - minecraft-streaming
@@ -37,50 +35,43 @@ services:
       context: ./streaming
       dockerfile: Dockerfile
     container_name: minecraft-streaming-service
-    # Intel iGPU passthrough (Linux only, comment out on Windows)
+    # Uncomment for Intel iGPU hardware encoding
     # devices:
     #   - /dev/dri:/dev/dri
     environment:
       - YOUTUBE_STREAM_KEY=${YOUTUBE_STREAM_KEY}
       - TWITCH_STREAM_KEY=${TWITCH_STREAM_KEY}
       - STREAM_PLATFORM=${STREAM_PLATFORM:-youtube}
-      # youtube ingest method:
-      # - rtmp: standard YouTube ingest (rtmp://a.rtmp.youtube.com/live2/<key>)
-      # - hls:  YouTube HLS ingest (https://a.upload.youtube.com/http_upload_hls?cid=<cid>...)
       - YOUTUBE_INGEST_METHOD=${YOUTUBE_INGEST_METHOD:-rtmp}
-      # Optional override for YouTube RTMP ingest base URL
       - YOUTUBE_INGEST_URL=${YOUTUBE_INGEST_URL:-rtmp://a.rtmp.youtube.com/live2}
-      # Optional override for YouTube HLS upload base
-      - YOUTUBE_HLS_UPLOAD_BASE=${YOUTUBE_HLS_UPLOAD_BASE:-https://a.upload.youtube.com/http_upload_hls}
-      # Optional: paste the FULL YouTube Studio HLS ingest URL here (starts with https://)
       - YOUTUBE_HLS_URL=${YOUTUBE_HLS_URL:-}
-      # HLS upload HTTP method (YouTube supports POST/PUT; PUT tends to work better)
       - YOUTUBE_HLS_HTTP_METHOD=${YOUTUBE_HLS_HTTP_METHOD:-PUT}
-      # Optional: reduce load / speed up YouTube "Preparando emisión"
       - YOUTUBE_OUTPUT_WIDTH=${YOUTUBE_OUTPUT_WIDTH:-1280}
       - YOUTUBE_OUTPUT_HEIGHT=${YOUTUBE_OUTPUT_HEIGHT:-720}
-      # Performance settings (lower = smoother streaming)
-      - YOUTUBE_VIDEO_BITRATE=${YOUTUBE_VIDEO_BITRATE:-1500k}
-      - YOUTUBE_MAXRATE=${YOUTUBE_MAXRATE:-1500k}
-      - YOUTUBE_BUFSIZE=${YOUTUBE_BUFSIZE:-3000k}
-      - YOUTUBE_FRAMERATE=${YOUTUBE_FRAMERATE:-24}
+      - YOUTUBE_VIDEO_BITRATE=${YOUTUBE_VIDEO_BITRATE:-2500k}
+      - YOUTUBE_MAXRATE=${YOUTUBE_MAXRATE:-2500k}
+      - YOUTUBE_BUFSIZE=${YOUTUBE_BUFSIZE:-5000k}
+      - YOUTUBE_FRAMERATE=${YOUTUBE_FRAMERATE:-30}
       - DISPLAY_WIDTH=${DISPLAY_WIDTH:-1280}
       - DISPLAY_HEIGHT=${DISPLAY_HEIGHT:-720}
-      # Minecraft music configuration
+      - USE_HARDWARE_ENCODING=${USE_HARDWARE_ENCODING:-true}
+      - VAAPI_DEVICE=${VAAPI_DEVICE:-/dev/dri/renderD128}
+      - ENCODER_PRESET=${ENCODER_PRESET:-faster}
+      - ENABLE_OVERLAY=${ENABLE_OVERLAY:-true}
+      - OVERLAY_FONT_SIZE=${OVERLAY_FONT_SIZE:-24}
+      - OVERLAY_POSITION=${OVERLAY_POSITION:-top-left}
       - ENABLE_MUSIC=${ENABLE_MUSIC:-true}
       - MUSIC_DIR=${MUSIC_DIR:-/app/music}
       - MUSIC_VOLUME=${MUSIC_VOLUME:-0.3}
       - SPECTATOR_URL=http://minecraft-spectator-bot:3000
       - MUMBLE_SERVER=minecraft-mumble-server
       - MUMBLE_PORT=64738
-      - VOICE_VOLUME_GAIN=${VOICE_VOLUME_GAIN:-2.0}
-      - GAME_MUSIC_VOLUME_GAIN=${GAME_MUSIC_VOLUME_GAIN:-0.5}
     volumes:
       - ./streaming/config:/app/config
       - ./streaming/logs:/app/logs
-      - ./streaming/music:/app/music  # Mount music directory (add .ogg files here)
-      - ./streaming/capture-viewer.js:/app/capture-viewer.js:ro  # Live updates
-      - ./streaming/streaming-service.py:/app/streaming-service.py:ro  # Live updates
+      - ./streaming/music:/app/music
+      - ./streaming/capture-viewer.js:/app/capture-viewer.js:ro
+      - ./streaming/streaming-service.py:/app/streaming-service.py:ro
     depends_on:
       - minecraft-spectator-bot
       - mumble-server
@@ -105,9 +96,7 @@ services:
 volumes:
   minecraft-bot-auth:
     driver: local
-    # This volume persists authentication tokens across container updates
 
 networks:
   minecraft-streaming:
     driver: bridge
-

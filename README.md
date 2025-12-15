@@ -1,15 +1,20 @@
 # Minecraft YouTube Follower
 
-A Docker-based system for 24/7 automated streaming of your Minecraft server with intelligent player following and integrated voice chat. The bot automatically follows players, showcases builds when the server is empty, and streams everything to YouTube or Twitch.
+A Docker-based system for 24/7 automated streaming of your Minecraft server. The spectator bot automatically follows players with a smart third-person camera, showcases builds when the server is empty, and streams everything to YouTube or Twitch.
 
 ## Features
 
-- 🤖 **Automated Spectator Bot**: Uses Mineflayer to follow players in spectator mode (noclip, invisible)
-- 📹 **24/7 Streaming**: Continuous YouTube/Twitch streaming with optimized encoding
-- 🎯 **Smart Player Tracking**: Automatically follows active players, switches every 30 seconds
-- 🎬 **Smooth Following**: Uses `/spectate` command for first-person smooth camera movement
+- 🤖 **Intelligent Spectator Bot**: Mineflayer bot that follows players with adaptive camera positioning
+- 📹 **24/7 Streaming**: Continuous YouTube/Twitch streaming with hardware-accelerated encoding (Intel iGPU)
+- 🎯 **Smart Camera System**: 
+  - Third-person view that shows the player (not just their POV)
+  - Adaptive distance based on environment (closer indoors, farther outdoors)
+  - Always focuses on player's face, not feet
+  - Smooth continuous tracking (configurable update rate)
+- 🏷️ **Player Name Overlay**: Shows who's being followed on stream
+- 🎵 **Background Music**: Plays Minecraft music during the stream
 - 🏗️ **Base Showcase Mode**: Tours interesting builds when no players are online
-- 🎤 **Voice Chat Integration**: Mumble VoIP server for player voice communication
+- 🎤 **Voice Chat Integration**: Mumble VoIP server for player communication
 - 🐳 **Docker Native**: Fully containerized for easy deployment
 - ⚡ **Live Code Updates**: Code changes apply without rebuilding Docker images
 
@@ -18,9 +23,9 @@ A Docker-based system for 24/7 automated streaming of your Minecraft server with
 - Docker and Docker Compose
 - Minecraft Java Edition account for the bot (~$30)
 - Free Azure subscription (for Microsoft account authentication)
-- Minecraft server (Paper recommended, with ViaBackwards plugin for version compatibility)
+- Minecraft server (Paper recommended, with ViaBackwards plugin)
 - YouTube or Twitch streaming key
-- Mojang API approval (required for new third-party applications)
+- (Optional) Intel iGPU for hardware-accelerated encoding
 
 ## Quick Start
 
@@ -30,86 +35,92 @@ A Docker-based system for 24/7 automated streaming of your Minecraft server with
    cd Minecraft-Youtube-Follower
    ```
 
-2. **Set up authentication** (see [docs/SETUP.md](docs/SETUP.md) for complete guide):
-   - Get free Azure subscription
-   - Create Azure app registration
-   - Request Mojang API approval (required for new apps)
-   - Configure `.env` file
+2. **Configure environment**:
+   ```bash
+   cp env.example .env
+   # Edit .env with your settings
+   ```
 
-3. **Deploy**:
+3. **Deploy** (development with local builds):
    ```bash
    docker-compose up -d
    ```
 
+   Or **deploy with pre-built images** (production):
+   ```bash
+   docker-compose -f docker-compose.prod.yml up -d
+   ```
+
 4. **Authenticate** (first time only):
-   - Check bot logs: `docker-compose logs minecraft-spectator-bot`
-   - Follow the device code authentication link
-   - Tokens are cached in a Docker volume (survives restarts)
+   ```bash
+   docker-compose logs -f minecraft-spectator-bot
+   ```
+   Follow the device code authentication link shown in logs.
 
 ## Configuration
 
-Copy `.env.example` to `.env` and configure the following variables:
+All configuration is done via environment variables. Copy `env.example` to `.env` and customize.
 
 ### Required Variables
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `MINECRAFT_USERNAME` | Your Minecraft Java Edition username | `YourUsername` |
+| `MINECRAFT_USERNAME` | Your Minecraft Java Edition username | `YourBotAccount` |
 | `SERVER_HOST` | Your Minecraft server IP/domain | `mc.example.com` |
 | `SERVER_PORT` | Minecraft server port | `25565` |
 | `AZURE_CLIENT_ID` | Azure app registration client ID | `12345678-1234-1234-1234-123456789abc` |
-| `YOUTUBE_STREAM_KEY` | YouTube streaming key (RTMP or HLS CID) | `your-stream-key` |
-| `STREAM_PLATFORM` | Streaming platform | `youtube` or `twitch` |
+| `YOUTUBE_STREAM_KEY` | YouTube streaming key | `xxxx-xxxx-xxxx-xxxx-xxxx` |
 
-### Bot Configuration
+### Camera Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `USE_SPECTATE` | `true` | Use `/spectate` for smooth first-person following (recommended). Set to `false` for third-person camera with adaptive distance |
-| `CHECK_INTERVAL_MS` | `5000` | How often to check for online players (milliseconds) |
-| `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (milliseconds) |
-| `FOLLOW_DISTANCE` | `8` | Camera distance behind player (blocks, only used when `USE_SPECTATE=false`) |
-| `FOLLOW_HEIGHT` | `3` | Camera height above player (blocks, only used when `USE_SPECTATE=false`) |
-| `VIEWER_VIEW_DISTANCE` | `6` | Prismarine viewer render distance (lower = better performance) |
-| `SPECTATOR_PORT` | `3000` | Port for the prismarine-viewer web interface |
-| `MSAL_AUTHORITY` | `https://login.microsoftonline.com/consumers` | Azure AD authority. Use `https://login.microsoftonline.com/common` if you get tenant/consent errors |
+| `CAMERA_MODE` | `third-person` | Camera mode: `third-person` (shows player) or `spectate` (first-person POV) |
+| `CAMERA_UPDATE_INTERVAL_MS` | `500` | Camera position update rate (lower = smoother, more CPU) |
+| `CAMERA_DISTANCE` | `6` | Base distance behind player (blocks) |
+| `CAMERA_HEIGHT` | `2` | Base height above player's head (blocks) |
+| `CAMERA_ANGLE_OFFSET` | `0` | Horizontal angle offset (degrees) |
+| `CHECK_INTERVAL_MS` | `5000` | How often to check for players (ms) |
+| `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
 
 ### Streaming Configuration
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `YOUTUBE_INGEST_METHOD` | `rtmp` | YouTube ingest method: `rtmp` or `hls` |
-| `YOUTUBE_HLS_URL` | (empty) | Full YouTube HLS ingest URL from Studio (recommended for HLS) |
-| `YOUTUBE_HLS_HTTP_METHOD` | `PUT` | HTTP method for HLS uploads (`PUT` or `POST`) |
-| `YOUTUBE_OUTPUT_WIDTH` | `1280` | Stream output width (pixels) |
-| `YOUTUBE_OUTPUT_HEIGHT` | `720` | Stream output height (pixels) |
-| `YOUTUBE_VIDEO_BITRATE` | `1500k` | Video bitrate (lower = smoother streaming, less CPU) |
-| `YOUTUBE_MAXRATE` | `1500k` | Maximum video bitrate (should match `YOUTUBE_VIDEO_BITRATE` for CBR) |
-| `YOUTUBE_BUFSIZE` | `3000k` | Video buffer size (typically 2x bitrate) |
-| `YOUTUBE_FRAMERATE` | `24` | Stream framerate (24fps = smoother with less CPU) |
-| `DISPLAY_WIDTH` | `1280` | Virtual display width (should match output for less scaling) |
-| `DISPLAY_HEIGHT` | `720` | Virtual display height (should match output for less scaling) |
-| `TWITCH_STREAM_KEY` | (empty) | Twitch streaming key (if using Twitch) |
-| `ENABLE_MUSIC` | `true` | Enable Minecraft background music (requires music files in `streaming/music/`) |
-| `MUSIC_DIR` | `/app/music` | Directory containing music files (mounted from `streaming/music/`) |
-| `MUSIC_VOLUME` | `0.3` | Music volume level (0.0-1.0, where 0.3 = 30%) |
+| `STREAM_PLATFORM` | `youtube` | Platform: `youtube` or `twitch` |
+| `YOUTUBE_INGEST_METHOD` | `rtmp` | Ingest method: `rtmp` or `hls` |
+| `YOUTUBE_HLS_URL` | (empty) | Full YouTube HLS ingest URL (for HLS method) |
+| `YOUTUBE_OUTPUT_WIDTH` | `1280` | Output resolution width |
+| `YOUTUBE_OUTPUT_HEIGHT` | `720` | Output resolution height |
+| `YOUTUBE_VIDEO_BITRATE` | `2500k` | Video bitrate |
+| `YOUTUBE_FRAMERATE` | `30` | Stream framerate |
+| `USE_HARDWARE_ENCODING` | `true` | Use Intel VAAPI if available |
+| `ENCODER_PRESET` | `faster` | x264 preset (ultrafast/superfast/veryfast/faster/fast) |
 
-### Mumble Server Configuration
+### Overlay & Music
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `ENABLE_OVERLAY` | `true` | Show player name overlay |
+| `OVERLAY_FONT_SIZE` | `24` | Overlay font size (pixels) |
+| `OVERLAY_POSITION` | `top-left` | Position: `top-left`, `top-right`, `bottom-left`, `bottom-right` |
+| `ENABLE_MUSIC` | `true` | Play background music |
+| `MUSIC_VOLUME` | `0.3` | Music volume (0.0-1.0) |
+
+### Performance Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VIEWER_VIEW_DISTANCE` | `6` | Prismarine viewer render distance (lower = better performance) |
+| `DISPLAY_WIDTH` | `1280` | Virtual display width (should match output) |
+| `DISPLAY_HEIGHT` | `720` | Virtual display height (should match output) |
+
+### Voice Chat (Mumble)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MUMBLE_PORT` | `64738` | Mumble server port |
-| `MUMBLE_SUPERUSER_PASSWORD` | `changeme` | Mumble superuser password |
-| `VOICE_VOLUME_GAIN` | `2.0` | Voice chat volume gain (multiplier) |
-| `GAME_MUSIC_VOLUME_GAIN` | `0.5` | Game music volume gain (if implemented) |
-
-### Advanced Configuration
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `YOUTUBE_INGEST_URL` | `rtmp://a.rtmp.youtube.com/live2` | YouTube RTMP ingest base URL |
-| `YOUTUBE_HLS_UPLOAD_BASE` | `https://a.upload.youtube.com/http_upload_hls` | YouTube HLS upload base URL |
-| `FOLLOW_UPDATE_INTERVAL_MS` | `2000` | How often to update camera position when not using `/spectate` (milliseconds) |
+| `MUMBLE_SUPERUSER_PASSWORD` | `changeme` | Mumble admin password |
 
 ## Architecture
 
@@ -121,66 +132,84 @@ Copy `.env.example` to `.env` and configure the following variables:
 
 ### How It Works
 
-1. Bot authenticates with Microsoft account (cached in Docker volume)
+1. Bot authenticates with Microsoft account (tokens cached in Docker volume)
 2. Bot joins your Minecraft server in spectator mode
-3. Bot detects active players from tab-list (works even if players are far away)
-4. Bot follows the most active player using `/spectate` (smooth first-person view)
-5. Bot switches between players every 30 seconds (if multiple are active)
-6. Spectator view is rendered via prismarine-viewer web interface
-7. Puppeteer captures the viewer in a headless Chrome browser
-8. FFmpeg encodes and streams to YouTube/Twitch
-9. When no players are online, bot showcases interesting builds (configure in code)
+3. Bot detects active players from tab-list
+4. Camera positions behind player, looking at their face
+5. Camera adapts distance based on environment (closer indoors)
+6. Spectator view rendered via prismarine-viewer web interface
+7. Puppeteer captures the viewer in headless Chrome
+8. FFmpeg encodes (with hardware acceleration if available) and streams
+9. Player name overlay added to stream
+10. When no players online, bot showcases pre-configured locations
 
-## Getting Your YouTube Stream Key
+## Mumble Deployment (Unraid)
 
-1. Go to [YouTube Studio](https://studio.youtube.com)
-2. Navigate to **Content** → **Go live** → **Stream**
-3. Create a new stream or use an existing one
-4. Choose **RTMP** or **HLS** ingest method:
-   - **RTMP**: Copy the stream key (format: `xxxx-xxxx-xxxx-xxxx-xxxx`)
-   - **HLS**: Copy the full ingest URL (starts with `https://a.upload.youtube.com/http_upload_hls?...`)
-5. Add to `.env`:
-   - For RTMP: `YOUTUBE_STREAM_KEY=your-key` and `YOUTUBE_INGEST_METHOD=rtmp`
-   - For HLS: `YOUTUBE_HLS_URL=your-full-url` and `YOUTUBE_INGEST_METHOD=hls`
+For Unraid users who want to run Mumble separately:
+
+### Option 1: Using Community Applications
+
+1. Open **Community Applications** in Unraid
+2. Search for "Mumble" or "Murmur"
+3. Install the **mumble-server** container
+4. Configure:
+   - **Port**: 64738 (TCP and UDP)
+   - **SuperUser Password**: Set a secure password
+   - **Config Path**: `/mnt/user/appdata/mumble`
+
+### Option 2: Docker Command
+
+```bash
+docker run -d \
+  --name=mumble-server \
+  -p 64738:64738/tcp \
+  -p 64738:64738/udp \
+  -e MUMBLE_SUPERUSER_PASSWORD=your_secure_password \
+  -v /mnt/user/appdata/mumble:/data \
+  --restart=unless-stopped \
+  mumblevoip/mumble-server:latest
+```
+
+### Option 3: Docker Compose (Standalone)
+
+Create `mumble-docker-compose.yml`:
+
+```yaml
+services:
+  mumble-server:
+    image: mumblevoip/mumble-server:latest
+    container_name: mumble-server
+    ports:
+      - "64738:64738/tcp"
+      - "64738:64738/udp"
+    environment:
+      - MUMBLE_SUPERUSER_PASSWORD=your_secure_password
+    volumes:
+      - /mnt/user/appdata/mumble:/data
+    restart: unless-stopped
+```
+
+Then: `docker-compose -f mumble-docker-compose.yml up -d`
+
+### Connecting Mumble to the Stream
+
+1. Install Mumble client on your PC
+2. Connect to your Unraid server IP on port 64738
+3. The streaming service captures Mumble audio automatically (when voice integration is enabled)
 
 ## Adding Minecraft Music
 
-The stream can include Minecraft background music by placing music files in the `streaming/music/` directory:
+Place `.ogg` or `.mp3` files in `streaming/music/`:
 
-1. **Get Minecraft music files**:
-   - Extract from your Minecraft installation (see `streaming/music/README.md`)
-   - Or download from the [Minecraft Wiki](https://minecraft.wiki/w/Music)
-   - Or use any `.ogg` or `.mp3` files as background music
+```bash
+# From your Minecraft installation
+cp ~/.minecraft/assets/objects/**/**.ogg streaming/music/
 
-2. **Place files in `streaming/music/`**:
-   ```bash
-   cp ~/.minecraft/assets/objects/*.ogg streaming/music/
-   ```
+# Or download from Minecraft Wiki
+# https://minecraft.wiki/w/Music
+```
 
-3. **Configure volume** (in `.env`):
-   ```
-   ENABLE_MUSIC=true
-   MUSIC_VOLUME=0.3  # 30% volume (adjust as needed)
-   ```
-
-4. **Restart streaming service**:
-   ```bash
-   docker-compose restart streaming-service
-   ```
-
-The music will loop seamlessly through all files in the directory. If no music files are found, the stream uses silent audio.
-
-See `streaming/music/README.md` for detailed instructions.
-
-## Viewing Your Stream
-
-1. Go to [YouTube Studio](https://studio.youtube.com)
-2. Navigate to **Content** → **Go live**
-3. Your stream should appear in the list
-4. Click **Go live** to make it public
-5. The stream URL will be: `https://www.youtube.com/watch?v=STREAM_ID`
-
-**Note**: YouTube may show "Preparando emisión" (preparing broadcast) for a minute while processing HLS segments. This is normal.
+Music loops seamlessly through all files in the directory.
 
 ## Server Configuration
 
@@ -188,8 +217,7 @@ Your Minecraft server needs:
 
 1. **ViaBackwards plugin** (for version compatibility):
    - Download: https://github.com/ViaVersion/ViaBackwards
-   - Place in `plugins/` folder
-   - Allows bot (1.21.4 protocol) to connect to server (1.21.10)
+   - Allows bot to connect regardless of version differences
 
 2. **Bot permissions**:
    ```bash
@@ -199,65 +227,17 @@ Your Minecraft server needs:
 
 3. **Server settings**:
    - `online-mode=true` (required for Microsoft authentication)
-   - Whitelist enabled (if using whitelist)
-
-## Authentication Setup
-
-**⚠️ IMPORTANT**: Microsoft accounts require OAuth authentication and Mojang API approval. This is a multi-step process:
-
-1. **Azure App Registration** - Required for Microsoft OAuth
-2. **Mojang API Approval** - Required for new third-party applications
-
-See [docs/SETUP.md](docs/SETUP.md) for the complete step-by-step authentication guide.
-
-## Troubleshooting
-
-### Authentication Issues
-
-- **"first party application" error**: Try setting `MSAL_AUTHORITY=https://login.microsoftonline.com/common` in `.env`
-- **"Mojang API approval required"**: You must request approval from Mojang (see [docs/SETUP.md](docs/SETUP.md))
-- **Tokens not persisting**: Check that the `minecraft-bot-auth` Docker volume exists
-
-### Bot Won't Connect
-
-- Verify server IP and port in `.env`
-- Check server allows the bot's IP address
-- Ensure server doesn't require whitelist (or bot is whitelisted)
-- Check server has ViaBackwards plugin installed
-- Verify bot has OP permissions
-
-### No Video Stream
-
-- Verify streaming key is correct
-- Check streaming service logs: `docker-compose logs streaming-service`
-- Ensure spectator bot viewer is accessible: `docker-compose logs minecraft-spectator-bot`
-- Check YouTube Studio shows "Streaming" status
-- For HLS: Wait 1-2 minutes for YouTube to process segments
-
-### Stream is Black
-
-- Check Puppeteer logs: `docker-compose logs streaming-service | grep Puppeteer`
-- Verify Chromium window exists: The service auto-restarts if window disappears
-- Check viewer is accessible: `curl http://localhost:3000` (from host)
-
-### Bot Not Following Players
-
-- Check bot logs: `docker-compose logs minecraft-spectator-bot`
-- Verify players are online (bot logs show "Players online (N): ...")
-- Check `/spectate` command is available on your server
-- If using third-person mode (`USE_SPECTATE=false`), ensure bot has OP permissions
 
 ## Development
 
 ### Live Code Updates
 
-Code changes apply without rebuilding Docker images:
+Code changes apply without rebuilding:
 
-- `bot/spectator-bot.js` - Mounted as volume (changes apply on container restart)
-- `streaming/capture-viewer.js` - Mounted as volume
-- `streaming/streaming-service.py` - Mounted as volume
+- `bot/spectator-bot.js` - Restart bot container
+- `streaming/capture-viewer.js` - Restart streaming container
+- `streaming/streaming-service.py` - Restart streaming container
 
-To apply changes:
 ```bash
 docker-compose restart minecraft-spectator-bot  # For bot changes
 docker-compose restart streaming-service        # For streaming changes
@@ -266,28 +246,49 @@ docker-compose restart streaming-service        # For streaming changes
 ### Logs
 
 ```bash
-# Bot logs
-docker-compose logs -f minecraft-spectator-bot
-
-# Streaming service logs
-docker-compose logs -f streaming-service
-
-# All logs
-docker-compose logs -f
+docker-compose logs -f minecraft-spectator-bot  # Bot logs
+docker-compose logs -f streaming-service        # Streaming logs
+docker-compose logs -f                          # All logs
 ```
 
 ### Rebuilding Images
 
-If you change dependencies (`package.json`, `requirements.txt`, or `Dockerfile`):
+For dependency changes:
 
 ```bash
 docker-compose build --no-cache
 docker-compose up -d
 ```
 
+## Troubleshooting
+
+### Authentication Issues
+
+- **"first party application" error**: Set `MSAL_AUTHORITY=https://login.microsoftonline.com/common`
+- **Tokens not persisting**: Check the `minecraft-bot-auth` Docker volume exists
+- **Multiple auth codes**: Wait for authentication to complete before restarting
+
+### Camera Issues
+
+- **Camera too close**: Increase `CAMERA_DISTANCE` (default: 6)
+- **Camera clipping through walls**: This is adaptive; ensure `CAMERA_MODE=third-person`
+- **Jerky movement**: Decrease `CAMERA_UPDATE_INTERVAL_MS` (default: 500)
+
+### Stream Issues
+
+- **Black screen**: Check Puppeteer logs, ensure viewer is accessible
+- **Low bitrate warning**: Increase `YOUTUBE_VIDEO_BITRATE`
+- **High CPU usage**: Enable `USE_HARDWARE_ENCODING=true` (requires Intel iGPU)
+
+### Bot Issues
+
+- **"No players detected"**: Bot reads from tab-list; ensure players are actually online
+- **Bot not moving**: Check bot has OP permissions on server
+
 ## Documentation
 
 - [Setup Guide](docs/SETUP.md) - Complete installation and authentication guide
+- [Mojang API Approval](docs/MOJANG_API_APPROVAL.md) - Required for new applications
 
 ## License
 
