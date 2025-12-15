@@ -201,8 +201,6 @@ Your Minecraft server needs:
    - `online-mode=true` (required for Microsoft authentication)
    - Whitelist enabled (if using whitelist)
 
-See [docs/SERVER_CONFIGURATION.md](docs/SERVER_CONFIGURATION.md) for detailed server setup.
-
 ## Authentication Setup
 
 **⚠️ IMPORTANT**: Microsoft accounts require OAuth authentication and Mojang API approval. This is a multi-step process:
@@ -290,8 +288,6 @@ docker-compose up -d
 ## Documentation
 
 - [Setup Guide](docs/SETUP.md) - Complete installation and authentication guide
-- [Server Configuration](docs/SERVER_CONFIGURATION.md) - Minecraft server setup
-- [YouTube Streaming](docs/YOUTUBE_STREAMING.md) - YouTube streaming setup details
 
 ## License
 
