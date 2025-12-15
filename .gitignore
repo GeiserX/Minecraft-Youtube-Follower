@@ -156,3 +156,4 @@ streaming/music/*.mp3
 streaming/music/*.wav
 streaming/music/*.flac
 !streaming/music/README.md
+streaming/config/current_target.txt
