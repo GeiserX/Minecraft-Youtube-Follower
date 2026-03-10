@@ -1,6 +1,16 @@
-# Minecraft YouTube Follower
+<p align="center"><img src="docs/images/banner.svg" alt="Minecraft YouTube Follower banner" width="900"/></p>
 
-A Docker-based system for 24/7 automated streaming of your Minecraft server. The spectator bot automatically follows players with a smart third-person camera, showcases builds when the server is empty, and streams everything to YouTube or Twitch.
+<h1 align="center">Minecraft YouTube Follower</h1>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/GeiserX/Minecraft-Youtube-Follower" alt="License"/></a>
+  <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/pulls/drumsergio/minecraft-spectator-bot" alt="Docker Pulls"/></a>
+  <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/image-size/drumsergio/minecraft-spectator-bot/latest" alt="Docker Image Size"/></a>
+</p>
+
+<p align="center"><strong>A Docker-based system for 24/7 automated streaming of your Minecraft server. The spectator bot automatically follows players with a smart third-person camera, showcases builds when the server is empty, and streams everything to YouTube or Twitch.</strong></p>
+
+---
 
 ## Features
 
