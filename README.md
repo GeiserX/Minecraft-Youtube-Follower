@@ -12,6 +12,11 @@
 
 ---
 
+## Demo
+
+- [24/7 automated server stream](https://youtube.com/live/7pPMtL0e8eE)
+- [Player following demo](https://youtube.com/live/9ns0jZ_VBC4)
+
 ## Features
 
 - 🤖 **Intelligent Spectator Bot**: Mineflayer bot that follows players with adaptive camera positioning
