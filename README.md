@@ -3,6 +3,7 @@
 <h1 align="center">Minecraft YouTube Follower</h1>
 
 <p align="center">
+  <a href="https://github.com/GeiserX/Minecraft-Youtube-Follower/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/GeiserX/Minecraft-Youtube-Follower/ci.yml?label=CI" alt="CI"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/github/license/GeiserX/Minecraft-Youtube-Follower" alt="License"/></a>
   <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/pulls/drumsergio/minecraft-spectator-bot" alt="Docker Pulls"/></a>
   <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/image-size/drumsergio/minecraft-spectator-bot/latest" alt="Docker Image Size"/></a>
