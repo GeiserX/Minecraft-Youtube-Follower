@@ -9,15 +9,18 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: bot
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
       - name: Install dependencies
-        run: cd bot && npm ci || cd bot && npm install
+        run: npm install
       - name: Run tests
-        run: cd bot && npx jest --coverage
+        run: npx jest --coverage
       - uses: codecov/codecov-action@v5
         if: github.event_name == 'push'
         with:
