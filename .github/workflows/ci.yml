@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install canvas build dependencies
+        run: sudo apt-get update && sudo apt-get install -y build-essential libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev libpixman-1-dev
+        working-directory: .
       - name: Install dependencies
         run: npm install
       - name: Run tests
