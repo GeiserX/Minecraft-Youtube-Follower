@@ -1,4 +1,4 @@
-# AGENTS.md — Minecraft YouTube Follower
+# CLAUDE.md — Minecraft YouTube Follower
 
 ## Project Overview
 
