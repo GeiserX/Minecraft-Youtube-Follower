@@ -13,8 +13,8 @@ jobs:
       run:
         working-directory: bot
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
       - name: Install canvas build dependencies
@@ -24,7 +24,7 @@ jobs:
         run: npm install
       - name: Run tests
         run: npx jest --coverage
-      - uses: codecov/codecov-action@v5
+      - uses: codecov/codecov-action@v7
         if: github.event_name == 'push'
         with:
           fail_ci_if_error: false
