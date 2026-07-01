@@ -15,7 +15,7 @@ jobs:
           - drumsergio/minecraft-spectator-bot
           - drumsergio/minecraft-streaming-service
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - uses: peter-evans/dockerhub-description@v5
         with:
