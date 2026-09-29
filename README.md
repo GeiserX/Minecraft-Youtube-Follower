@@ -1,10 +1,10 @@
-<p align="center"><img src="https://raw.githubusercontent.com/GeiserX/Minecraft-Youtube-Follower/main/docs/images/banner.svg" alt="Minecraft YouTube Follower banner" width="900"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/GeiserX/Minecraft-Youtube-Follower/main/docs/images/banner.svg" alt="Minecraft YouTube Follower" width="900"/></p>
 
 <h1 align="center">Minecraft YouTube Follower</h1>
 
 <p align="center">
   <a href="https://github.com/GeiserX/Minecraft-Youtube-Follower/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/GeiserX/Minecraft-Youtube-Follower/ci.yml?label=CI" alt="CI"/></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/GeiserX/Minecraft-Youtube-Follower" alt="License"/></a>
+  <a href="https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/LICENSE"><img src="https://img.shields.io/github/license/GeiserX/Minecraft-Youtube-Follower" alt="License"/></a>
   <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/pulls/drumsergio/minecraft-spectator-bot" alt="Docker Pulls"/></a>
   <a href="https://codecov.io/gh/GeiserX/Minecraft-Youtube-Follower"><img src="https://codecov.io/gh/GeiserX/Minecraft-Youtube-Follower/graph/badge.svg" alt="Codecov"/></a>
 </p>
@@ -27,25 +27,26 @@ Watch it live: [24/7 automated server stream](https://youtube.com/live/7pPMtL0e8
 
 ```bash
 git clone https://github.com/GeiserX/Minecraft-Youtube-Follower.git && cd Minecraft-Youtube-Follower
-cp env.example .env   # then edit .env
-docker-compose -f docker-compose.prod.yml up -d
+cp .env.example .env   # then edit .env
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-On first start, follow the device code link in `docker-compose logs -f minecraft-spectator-bot` to sign in the bot. You need a Minecraft Java Edition account, a free Azure subscription and a stream key; see [Installation](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/installation.md).
+On first start, follow the device code link in `docker compose -f docker-compose.prod.yml logs -f minecraft-spectator-bot` to sign in the bot. You need a Minecraft Java Edition account, a free Azure subscription and a stream key; see [Getting started](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/getting-started.md).
 
 ## Documentation
 
-- [Installation](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/installation.md): requirements, deploy steps, server configuration
-- [Setup guide](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/SETUP.md): complete installation and authentication guide
-- [Mojang API approval](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/MOJANG_API_APPROVAL.md): required for new applications
+- [Getting started](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/getting-started.md): requirements, Azure app registration, first start and the device-code sign-in
 - [Configuration](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/configuration.md): environment variables, showcase locations, music
-- [Architecture](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/architecture.md): services and how a frame reaches the stream
-- [Mumble on Unraid](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/mumble.md)
-- [Development](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/development.md): live code updates, logs, rebuilding, contributing
+- [How it works](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/how-it-works.md): services and how a frame reaches the stream
 - [Troubleshooting](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/troubleshooting.md)
+- [Development](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/development.md): live code updates, logs, rebuilding
+- [Mojang API approval](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/mojang-api-approval.md): required before a new Azure app can sign a bot in
+- [Mumble on Unraid](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/mumble.md)
+
+## Disclaimer
+
+This project is for educational and personal use. Follow Minecraft's Terms of Service, YouTube/Twitch streaming policies, your server's rules and regulations, and privacy laws if you stream other players.
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-This project is for educational and personal use. Follow Minecraft's Terms of Service, YouTube/Twitch streaming policies, your server's rules and regulations, and privacy laws if you stream other players.
+[GPL-3.0-or-later](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/LICENSE)

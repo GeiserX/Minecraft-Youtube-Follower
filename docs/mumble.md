@@ -44,7 +44,7 @@ services:
     restart: unless-stopped
 ```
 
-Then: `docker-compose -f mumble-docker-compose.yml up -d`
+Then: `docker compose -f mumble-docker-compose.yml up -d`
 
 ## Connecting Mumble to the Stream
 

@@ -13,7 +13,7 @@ Docker-based system for 24/7 automated streaming of a Minecraft server. A specta
 ## Development
 ```bash
 # Configure
-cp env.example .env
+cp .env.example .env
 # Edit .env with server, streaming key, etc.
 
 # Run

@@ -1,4 +1,4 @@
-# Architecture
+# How it works
 
 <a href="https://hub.docker.com/r/drumsergio/minecraft-spectator-bot"><img src="https://img.shields.io/docker/image-size/drumsergio/minecraft-spectator-bot/latest" alt="Docker Image Size"/></a>
 

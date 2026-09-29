@@ -1,6 +1,6 @@
 # Configuration
 
-All configuration is done via environment variables. Copy `env.example` to `.env` and customize.
+All configuration is done via environment variables. Copy `.env.example` to `.env` and customize. Both compose files read `.env`.
 
 ## Required Variables
 
@@ -25,7 +25,7 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 | `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
 | `SHOWCASE_DURATION_MS` | `10000` | Time spent at each showcase location when no players online (ms) |
 
-`docker-compose.prod.yml` sets the three camera values literally, so `.env` does not change them there. To change the production camera, edit those entries in `docker-compose.prod.yml`.
+Both compose files read these from `.env` and fall back to the defaults above when a variable is unset.
 
 **CAMERA_DISTANCE vs VIEWER_VIEW_DISTANCE:**
 - `CAMERA_DISTANCE` = How many blocks behind the player the camera is positioned
