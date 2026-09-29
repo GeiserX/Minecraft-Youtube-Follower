@@ -22,7 +22,7 @@ docker run -d \
   -e MUMBLE_SUPERUSER_PASSWORD=your_secure_password \
   -v /mnt/user/appdata/mumble:/data \
   --restart=unless-stopped \
-  mumblevoip/mumble-server:latest
+  mumblevoip/mumble-server:v1.5.915
 ```
 
 ## Option 3: Docker Compose (Standalone)
@@ -32,7 +32,7 @@ Create `mumble-docker-compose.yml`:
 ```yaml
 services:
   mumble-server:
-    image: mumblevoip/mumble-server:latest
+    image: mumblevoip/mumble-server:v1.5.915
     container_name: mumble-server
     ports:
       - "64738:64738/tcp"

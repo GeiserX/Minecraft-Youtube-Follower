@@ -95,7 +95,7 @@ services:
       - minecraft-streaming
 
   mumble-server:
-    image: mumblevoip/mumble-server:latest
+    image: mumblevoip/mumble-server:v1.5.915
     container_name: minecraft-mumble-server
     ports:
       - "64738:64738/tcp"
