@@ -1,4 +1,4 @@
-<p align="center"><img src="docs/images/banner.svg" alt="Minecraft YouTube Follower banner" width="900"/></p>
+<p align="center"><img src="https://raw.githubusercontent.com/GeiserX/Minecraft-Youtube-Follower/main/docs/images/banner.svg" alt="Minecraft YouTube Follower banner" width="900"/></p>
 
 <h1 align="center">Minecraft YouTube Follower</h1>
 
