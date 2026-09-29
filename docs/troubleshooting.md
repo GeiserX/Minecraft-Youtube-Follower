@@ -8,9 +8,9 @@
 
 ## Camera Issues
 
-- **Camera too close**: Increase `CAMERA_DISTANCE` (default: 6)
+- **Camera too close**: Increase `CAMERA_DISTANCE` (default: 8 in the compose files, 6 in `env.example`, 5 if unset; see [Configuration](configuration.md#camera-configuration))
 - **Camera clipping through walls**: This is adaptive; ensure `CAMERA_MODE=third-person`
-- **Jerky movement**: Decrease `CAMERA_UPDATE_INTERVAL_MS` (default: 500)
+- **Jerky movement**: Decrease `CAMERA_UPDATE_INTERVAL_MS` (default: 2000 in the compose files, 500 in `env.example`, 2000 if unset)
 
 ## Stream Issues
 
