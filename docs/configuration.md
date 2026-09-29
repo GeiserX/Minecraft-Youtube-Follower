@@ -25,8 +25,6 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 | `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
 | `SHOWCASE_DURATION_MS` | `10000` | Time spent at each showcase location when no players online (ms) |
 
-The defaults above are the values the shipped compose files set. `docker-compose.prod.yml` hardcodes them. `docker-compose.yml` uses them only when the variable is unset or empty. Compose reads the value from your shell first, then from `.env`, and `env.example` sets `CAMERA_UPDATE_INTERVAL_MS=500`, `CAMERA_DISTANCE=6` and `CAMERA_HEIGHT=2`, so a `.env` copied from it gives you those. When a variable is not set at all, the bot falls back to `CAMERA_UPDATE_INTERVAL_MS=2000`, `CAMERA_DISTANCE=5` and `CAMERA_HEIGHT=1.5` (`bot/bot-logic.js`).
-
 **CAMERA_DISTANCE vs VIEWER_VIEW_DISTANCE:**
 - `CAMERA_DISTANCE` = How many blocks behind the player the camera is positioned
 - `VIEWER_VIEW_DISTANCE` = How many chunks (16x16 block areas) are rendered in the viewer

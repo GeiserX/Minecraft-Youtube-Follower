@@ -110,8 +110,8 @@ describe('loadCameraConfig', () => {
     expect(cam.SWITCH_INTERVAL).toBe(30000);
     expect(cam.CAMERA_MODE).toBe('third-person');
     expect(cam.CAMERA_UPDATE_INTERVAL).toBe(2000);
-    expect(cam.CAMERA_DISTANCE).toBe(5);
-    expect(cam.CAMERA_HEIGHT).toBe(1.5);
+    expect(cam.CAMERA_DISTANCE).toBe(8);
+    expect(cam.CAMERA_HEIGHT).toBe(4);
     expect(cam.CAMERA_FIXED_ANGLE).toBe(0);
     expect(cam.VIEWER_VIEW_DISTANCE).toBe(6);
   });

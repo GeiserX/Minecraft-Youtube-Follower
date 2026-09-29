@@ -35,8 +35,8 @@ function loadCameraConfig(env) {
     SWITCH_INTERVAL: parseInt(env.SWITCH_INTERVAL_MS || '30000', 10),
     CAMERA_MODE: (env.CAMERA_MODE || 'third-person').toLowerCase(),
     CAMERA_UPDATE_INTERVAL: parseInt(env.CAMERA_UPDATE_INTERVAL_MS || '2000', 10),
-    CAMERA_DISTANCE: parseFloat(env.CAMERA_DISTANCE || '5'),
-    CAMERA_HEIGHT: parseFloat(env.CAMERA_HEIGHT || '1.5'),
+    CAMERA_DISTANCE: parseFloat(env.CAMERA_DISTANCE || '8'),
+    CAMERA_HEIGHT: parseFloat(env.CAMERA_HEIGHT || '4'),
     CAMERA_FIXED_ANGLE: parseFloat(env.CAMERA_FIXED_ANGLE || '0'),
     VIEWER_VIEW_DISTANCE: parseInt(env.VIEWER_VIEW_DISTANCE || '6', 10)
   };
