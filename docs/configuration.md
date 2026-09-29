@@ -25,6 +25,8 @@ All configuration is done via environment variables. Copy `env.example` to `.env
 | `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
 | `SHOWCASE_DURATION_MS` | `10000` | Time spent at each showcase location when no players online (ms) |
 
+`docker-compose.prod.yml` sets the three camera values literally, so `.env` does not change them there. To change the production camera, edit those entries in `docker-compose.prod.yml`.
+
 **CAMERA_DISTANCE vs VIEWER_VIEW_DISTANCE:**
 - `CAMERA_DISTANCE` = How many blocks behind the player the camera is positioned
 - `VIEWER_VIEW_DISTANCE` = How many chunks (16x16 block areas) are rendered in the viewer
