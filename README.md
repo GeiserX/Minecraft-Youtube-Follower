@@ -9,19 +9,19 @@
   <a href="https://codecov.io/gh/GeiserX/Minecraft-Youtube-Follower"><img src="https://codecov.io/gh/GeiserX/Minecraft-Youtube-Follower/graph/badge.svg" alt="Codecov"/></a>
 </p>
 
-<p align="center"><strong>A Docker-based system for 24/7 automated streaming of your Minecraft server. The spectator bot follows players with a third-person camera, tours your builds when the server is empty, and streams everything to YouTube or Twitch.</strong></p>
+<p align="center"><strong>A Docker-based system for 24/7 automated streaming of your Minecraft server. The spectator bot follows players with a third-person camera and streams them to YouTube or Twitch whenever someone is online.</strong></p>
 
 Watch it live: [24/7 automated server stream](https://youtube.com/live/7pPMtL0e8eE) and [player following demo](https://youtube.com/live/9ns0jZ_VBC4).
 
 ## Features
 
 - Mineflayer spectator bot that follows players and switches between them.
-- Third-person camera that shows the player, looks at their face, and moves closer indoors and farther outdoors.
+- Third-person camera that stays behind and above the player and looks at their face.
 - 24/7 streaming to YouTube (RTMP or HLS) or Twitch, with Intel VAAPI hardware encoding when available.
 - Player name overlay and background Minecraft music.
-- Showcase mode that tours chosen builds when nobody is online.
+- Stops the stream when the server is empty and starts it again when a player joins.
 - Mumble voice chat server for players.
-- Fully containerized; code changes apply with a container restart, no image rebuild.
+- Fully containerized; changes to the entry scripts apply with a container restart.
 
 ## Quick start
 

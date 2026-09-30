@@ -50,4 +50,4 @@ Then: `docker compose -f mumble-docker-compose.yml up -d`
 
 1. Install Mumble client on your PC
 2. Connect to your Unraid server IP on port 64738
-3. The streaming service captures Mumble audio automatically (when voice integration is enabled)
+3. Players talk to each other on this server. The stream carries the background music only, not the voice chat.

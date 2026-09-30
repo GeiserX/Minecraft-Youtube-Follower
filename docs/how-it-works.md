@@ -14,12 +14,11 @@
 2. Bot joins your Minecraft server in spectator mode
 3. Bot detects active players from tab-list
 4. Camera positions behind player, looking at their face
-5. Camera adapts distance based on environment (closer indoors)
-6. Spectator view rendered via prismarine-viewer web interface
-7. Puppeteer captures the viewer in headless Chrome
-8. FFmpeg encodes (with hardware acceleration if available) and streams
-9. Player name overlay added to stream
-10. When no players online, bot showcases pre-configured locations
+5. Spectator view rendered via prismarine-viewer web interface
+6. Puppeteer captures the viewer in headless Chrome
+7. FFmpeg encodes (with hardware acceleration if available) and streams
+8. Player name overlay added to stream
+9. When nobody is online, the bot marks the stream paused and the streaming service stops FFmpeg; it starts again when a player joins
 
 ## Features in detail
 
@@ -27,12 +26,11 @@
 - 📹 **24/7 Streaming**: Continuous YouTube/Twitch streaming with hardware-accelerated encoding (Intel iGPU)
 - 🎯 **Smart Camera System**: 
   - Third-person view that shows the player (not just their POV)
-  - Adaptive distance based on environment (closer indoors, farther outdoors)
   - Always focuses on player's face, not feet
   - Smooth continuous tracking (configurable update rate)
 - 🏷️ **Player Name Overlay**: Shows who's being followed on stream
 - 🎵 **Background Music**: Plays Minecraft music during the stream
-- 🏗️ **Base Showcase Mode**: Tours interesting builds when no players are online
+- ⏸️ **Pauses when empty**: Stops the stream when nobody is online and starts it again when a player joins
 - 🎤 **Voice Chat Integration**: Mumble VoIP server for player communication
 - 🐳 **Docker Native**: Fully containerized for easy deployment
-- ⚡ **Live Code Updates**: Code changes apply without rebuilding Docker images
+- ⚡ **Live Code Updates**: Changes to the entry scripts apply without rebuilding Docker images

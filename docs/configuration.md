@@ -23,7 +23,7 @@ All configuration is done via environment variables. Copy `.env.example` to `.en
 | `CAMERA_FIXED_ANGLE` | `0` | Fixed horizontal angle relative to player (degrees, 0=behind, 90=left side) |
 | `CHECK_INTERVAL_MS` | `5000` | How often to check for players (ms) |
 | `SWITCH_INTERVAL_MS` | `30000` | How long to follow each player before switching (ms) |
-| `SHOWCASE_DURATION_MS` | `10000` | Time spent at each showcase location when no players online (ms) |
+| `SHOWCASE_DURATION_MS` | `10000` | Read but has no effect since v0.5.4; see [When the server is empty](#when-the-server-is-empty) |
 
 Both compose files read these from `.env` and fall back to the defaults above when a variable is unset.
 
@@ -81,22 +81,9 @@ Both compose files read these from `.env` and fall back to the defaults above wh
 | `MUMBLE_PORT` | `64738` | Mumble server port |
 | `MUMBLE_SUPERUSER_PASSWORD` | `changeme` | Mumble admin password |
 
-## Showcase mode
+## When the server is empty
 
-When no players are online, the bot can fly around showcasing interesting builds. Edit `bot/spectator-bot.js` to configure your locations:
-
-```javascript
-const SHOWCASE_LOCATIONS = [
-  // Format: { x, y, z, yaw, pitch, description, duration }
-  // yaw: 0=south, 90=west, 180=north, 270=east
-  // pitch: 0=horizontal, negative=look up, positive=look down
-  { x: 0, y: 80, z: 0, yaw: 0, pitch: 20, description: 'Spawn Overview', duration: 10000 },
-  { x: 100, y: 70, z: -200, yaw: 45, pitch: 15, description: 'Castle', duration: 12000 },
-  { x: -500, y: 100, z: 300, yaw: 180, pitch: 25, description: 'Mountain Base', duration: 10000 },
-];
-```
-
-The overlay will display the location description (e.g., "🎬 Castle") while showcasing.
+When nobody is online, the bot writes "Server empty - stream paused" to the overlay and tells the streaming service to stop FFmpeg, so nothing is sent to YouTube or Twitch. The bot checks the player list every `CHECK_INTERVAL_MS` and starts the stream again when a player joins. This has been the behaviour since v0.5.4; the showcase tour that earlier versions ran instead is no longer started, so `SHOWCASE_DURATION_MS` and the showcase locations in `bot/bot-logic.js` have no effect.
 
 ## Adding Minecraft music
 

@@ -2,7 +2,7 @@
 
 ## Live Code Updates
 
-Code changes apply without rebuilding:
+Changes to these files apply without rebuilding, because the development compose file mounts them:
 
 - `bot/spectator-bot.js` - Restart bot container
 - `streaming/capture-viewer.js` - Restart streaming container
@@ -22,6 +22,8 @@ docker compose logs -f                          # All logs
 ```
 
 ## Rebuilding Images
+
+`bot/bot-logic.js`, which holds the camera and player-following logic, is copied into the image and not mounted, so a change to it needs `docker compose up -d --build minecraft-spectator-bot`.
 
 For dependency changes:
 

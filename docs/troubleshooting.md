@@ -12,7 +12,7 @@
 ## Camera Issues
 
 - **Camera too close**: Increase `CAMERA_DISTANCE` (default: 8; see [Configuration](configuration.md#camera-configuration))
-- **Camera clipping through walls**: This is adaptive; ensure `CAMERA_MODE=third-person`
+- **Camera clipping through walls**: the third-person camera does not avoid blocks; `CAMERA_MODE=spectate` shows the player's own view instead
 - **Jerky movement**: Decrease `CAMERA_UPDATE_INTERVAL_MS` (default: 2000)
 
 ## Stream Issues
