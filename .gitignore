@@ -111,6 +111,7 @@ test-results/
 *.test.js.snap
 *.spec.js.snap
 screenshots/
+!docs/images/screenshots/
 videos/
 *.mp4
 *.avi
@@ -158,3 +159,6 @@ streaming/music/*.wav
 streaming/music/*.flac
 !streaming/music/README.md
 streaming/config/current_target.txt
+
+# MkDocs build output
+site/

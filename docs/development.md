@@ -13,14 +13,6 @@ docker compose restart minecraft-spectator-bot  # For bot changes
 docker compose restart streaming-service        # For streaming changes
 ```
 
-## Logs
-
-```bash
-docker compose logs -f minecraft-spectator-bot  # Bot logs
-docker compose logs -f streaming-service        # Streaming logs
-docker compose logs -f                          # All logs
-```
-
 ## Rebuilding Images
 
 `bot/bot-logic.js`, which holds the camera and player-following logic, is copied into the image and not mounted, so a change to it needs `docker compose up -d --build minecraft-spectator-bot`.
@@ -32,16 +24,19 @@ docker compose build --no-cache
 docker compose up -d
 ```
 
-## Maintenance
+## Tests
 
 ```bash
-docker compose pull && docker compose build && docker compose up -d   # update
-docker compose restart                                                # restart
-docker compose down                                                   # stop
-docker compose logs -f mumble-server                                  # one service's log
+cd bot
+npm install
+npx jest --coverage
 ```
 
-With the published images, add `-f docker-compose.prod.yml` after `docker compose`.
+`npm install` builds `canvas`, which needs the Cairo, Pango, JPEG, GIF, SVG and Pixman development headers (`build-essential libcairo2-dev libjpeg-dev libpango1.0-dev libgif-dev librsvg2-dev libpixman-1-dev` on Debian or Ubuntu). The same tests run on every pull request as the `test` check. Logs, updates, restarts: [Usage](usage.md).
+
+## Docs
+
+The site is built by MkDocs from `docs/`. `pip install -r docs/requirements-docs.txt && mkdocs build --strict` builds it locally; the same strict build runs on every pull request, and a push to `main` deploys it.
 
 ## Security notes
 
