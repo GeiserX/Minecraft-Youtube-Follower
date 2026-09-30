@@ -31,17 +31,20 @@ cp .env.example .env   # then edit .env
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-On first start, follow the device code link in `docker compose -f docker-compose.prod.yml logs -f minecraft-spectator-bot` to sign in the bot. You need a Minecraft Java Edition account, a free Azure subscription and a stream key; see [Getting started](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/getting-started.md).
+On first start, follow the device code link in `docker compose -f docker-compose.prod.yml logs -f minecraft-spectator-bot` to sign in the bot. You need a Minecraft Java Edition account, a free Azure subscription and a stream key; see [Getting started](https://geiserx.github.io/Minecraft-Youtube-Follower/getting-started/).
 
 ## Documentation
 
-- [Getting started](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/getting-started.md): requirements, Azure app registration, first start and the device-code sign-in
-- [Configuration](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/configuration.md): environment variables, showcase locations, music
-- [How it works](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/how-it-works.md): services and how a frame reaches the stream
-- [Troubleshooting](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/troubleshooting.md)
-- [Development](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/development.md): live code updates, logs, rebuilding
-- [Mojang API approval](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/mojang-api-approval.md): required before a new Azure app can sign a bot in
-- [Mumble on Unraid](https://github.com/GeiserX/Minecraft-Youtube-Follower/blob/main/docs/mumble.md)
+The docs are at [geiserx.github.io/Minecraft-Youtube-Follower](https://geiserx.github.io/Minecraft-Youtube-Follower/).
+
+- [Getting started](https://geiserx.github.io/Minecraft-Youtube-Follower/getting-started/): requirements, Azure app registration, first start and the device-code sign-in
+- [Mojang API approval](https://geiserx.github.io/Minecraft-Youtube-Follower/mojang-api-approval/): required before a new Azure app can sign a bot in
+- [Usage](https://geiserx.github.io/Minecraft-Youtube-Follower/usage/): what the stream shows, the logs, updating and stopping
+- [Configuration](https://geiserx.github.io/Minecraft-Youtube-Follower/configuration/): environment variables and music
+- [Mumble deployment (Unraid)](https://geiserx.github.io/Minecraft-Youtube-Follower/mumble/): running the voice server on its own
+- [How it works](https://geiserx.github.io/Minecraft-Youtube-Follower/how-it-works/): services and how a frame reaches the stream
+- [Troubleshooting](https://geiserx.github.io/Minecraft-Youtube-Follower/troubleshooting/): sign-in, camera, stream and voice chat problems
+- [Development](https://geiserx.github.io/Minecraft-Youtube-Follower/development/): live code updates, tests, rebuilding
 
 ## Disclaimer
 
