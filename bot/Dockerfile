@@ -3,7 +3,7 @@ FROM node:20-alpine
 # The base image's CA bundle predates the eMudhra distrust (2026-10-20), and Node's
 # built-in roots still trust those intermediates: upgrade the bundle and verify
 # the Microsoft and Xbox sign-in calls against it.
-RUN apk upgrade --no-cache ca-certificates-bundle
+RUN apk add --no-cache 'ca-certificates-bundle>=20261020-r0'
 ENV NODE_OPTIONS=--use-openssl-ca
 
 WORKDIR /app
