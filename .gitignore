@@ -160,7 +160,7 @@ streaming/music/*.flac
 !streaming/music/README.md
 streaming/config/current_target.txt
 
-# MkDocs build output
+# Docs build output
 site/
 
 # Beads: bead text lives in the Dolt tracker only, never in git

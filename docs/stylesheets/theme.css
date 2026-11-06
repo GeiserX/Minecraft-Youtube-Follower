@@ -4,8 +4,8 @@
  * blocky capital wordmark in navy #0f1a2e with the tagline in #1e3a5f, and a
  * white viewfinder with a red recording dot #e62117. The site is dark first,
  * so the header and the dark page take the wordmark navy, and the accent is
- * the sky. mkdocs.yml sets `primary: custom` and `accent: custom`, so
- * Material paints nothing until these variables exist.
+ * the sky. zensical.toml sets `primary: custom` and `accent: custom`, so
+ * the theme paints nothing until these variables exist.
  */
 :root {
   --md-primary-fg-color: #0f1a2e; /* banner wordmark */
@@ -30,6 +30,10 @@
    #1f6fb5 is the same hue at 5.3:1. */
 [data-md-color-scheme="default"] {
   --md-typeset-a-color: #1f6fb5;
+  /* The current page in the side nav takes the accent. The sky on the white
+     header and page is 1.9:1, so the light scheme uses the link blue. */
+  --md-accent-fg-color: #1f6fb5;
+  --md-accent-fg-color--transparent: #1f6fb51a;
 }
 
 /* Fixed logo size so it does not crowd the site name. */
@@ -39,6 +43,13 @@
   width: 1.6rem;
 }
 
+/* The logo's viewfinder frame is white. The light scheme's header is white
+   too, so there the mark sits on a tile of the banner's wordmark navy. */
+[data-md-color-scheme="default"] .md-header__button.md-logo img {
+  background-color: #0f1a2e;
+  border-radius: 0.3rem;
+}
+
 /* The site name, set the way banner.svg sets the wordmark: heavy capitals
  * with open spacing.
  *
@@ -46,10 +57,16 @@
  * .md-header__topic and the page title in a second one, and swaps them on
  * scroll. Styling both would change every page title too. */
 .md-header__topic:first-child .md-ellipsis {
-  color: #ffffff;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+}
+
+/* That colour only on the dark scheme: Zensical's modern header takes the page
+   background, so on the light scheme it is white and a light name would vanish.
+   There the name keeps the default text colour. */
+[data-md-color-scheme="slate"] .md-header__topic:first-child .md-ellipsis {
+  color: #ffffff;
 }
 
 /* Keep the mark and the name close, so they read as one unit. */
